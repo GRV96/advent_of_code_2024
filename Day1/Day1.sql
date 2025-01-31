@@ -1,15 +1,15 @@
 CREATE DATABASE IF NOT EXISTS DAY1;
 USE DAY1;
 
-CREATE TABLE IF NOT EXISTS Input(
-locationId1 INT,
-locationId2 INT
+CREATE TABLE IF NOT EXISTS Input (
+	locationId1 INT,
+	locationId2 INT
 );
 
 -- Absolute path required
 LOAD DATA LOCAL INFILE "Day1Sample.txt"
 INTO TABLE Input
-FIELDS TERMINATED BY "   "; -- Three spaces
+FIELDS TERMINATED BY "   "; -- 3 spaces
 
 SELECT *
 FROM Input;
