@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS RightList (
 );
 
 -- Absolute path required
-LOAD DATA LOCAL INFILE "Day1Puzzle.txt"
+LOAD DATA LOCAL INFILE "Day1Sample.txt"
 INTO TABLE Input
 FIELDS TERMINATED BY "   "; -- 3 spaces
 
@@ -33,19 +33,29 @@ INSERT INTO RightList (locationId) (
     ORDER BY locationId2
 );
 
-CREATE OR REPLACE VIEW vDistances AS 
+CREATE OR REPLACE VIEW vLocations AS 
 SELECT
 	L.locationId AS leftLocation,
-    R.locationId AS rightLocation,
-    ABS(R.locationId - L.locationId) AS distance
+    R.locationId AS rightLocation
 FROM LeftList L
 INNER JOIN RightList R
 ON L.id = R.id;
 
+-- Puzzle 1
+CREATE OR REPLACE VIEW vDistances AS 
+SELECT
+	leftLocation,
+    rightLocation,
+    ABS(leftLocation - rightLocation) AS distance
+FROM vLocations;
+
 SELECT *
 FROM vDistances;
 
-SELECT SUM(distance) AS result
+SELECT SUM(distance) AS puzzle1Result
 FROM vDistances;
+
+-- Puzzle 2
+-- TODO
 
 DROP DATABASE DAY1;
