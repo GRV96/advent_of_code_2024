@@ -16,7 +16,7 @@ CONSTRAINT boolean CHECK (is_safe = 0 OR is_safe = 1)
 );
 TRUNCATE report;
 
-CREATE TABLE IF NOT EXISTS safety (
+CREATE TABLE IF NOT EXISTS safety_steps (
     id INT PRIMARY KEY UNIQUE,
     lvl0 INT,
     lvl1 INT,
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS safety (
     lvl7 INT,
 FOREIGN KEY (id) REFERENCES report(id)
 );
-TRUNCATE safety;
+TRUNCATE safety_steps;
 
 DELIMITER $$
 CREATE FUNCTION is_delta_safe(p_delta INT, p_expected_sign INT) RETURNS INT
@@ -60,6 +60,9 @@ INTO prev_lvl
 FROM report
 WHERE id = p_report_id;
 
+INSERT INTO safety_steps (id, lvl0) VALUES
+(p_report_id, prev_lvl);
+
 IF prev_lvl IS NULL THEN
     RETURN TRUE;
 END IF;
@@ -73,6 +76,10 @@ IF current_lvl IS NULL THEN
     RETURN TRUE;
 END IF;
 
+UPDATE safety_steps
+SET lvl1 = current_lvl
+WHERE id = p_report_id;
+
 SET delta_lvl = current_lvl - prev_lvl;
 SET is_safe = is_delta_safe(delta_lvl, expected_sign);
 SET expected_sign = SIGN(delta_lvl);
@@ -83,9 +90,13 @@ INTO current_lvl
 FROM report
 WHERE id = p_report_id;
 
-IF current_lvl IS NULL THEN
+IF current_lvl IS NULL OR is_safe = FALSE THEN
     RETURN is_safe;
 END IF;
+
+UPDATE safety_steps
+SET lvl2 = current_lvl
+WHERE id = p_report_id;
 
 SET delta_lvl = current_lvl - prev_lvl;
 SET is_safe = is_delta_safe(delta_lvl, expected_sign);
@@ -96,9 +107,13 @@ INTO current_lvl
 FROM report
 WHERE id = p_report_id;
 
-IF current_lvl IS NULL THEN
+IF current_lvl IS NULL OR is_safe = FALSE THEN
     RETURN is_safe;
 END IF;
+
+UPDATE safety_steps
+SET lvl3 = current_lvl
+WHERE id = p_report_id;
 
 SET delta_lvl = current_lvl - prev_lvl;
 SET is_safe = is_delta_safe(delta_lvl, expected_sign);
@@ -109,9 +124,13 @@ INTO current_lvl
 FROM report
 WHERE id = p_report_id;
 
-IF current_lvl IS NULL THEN
+IF current_lvl IS NULL OR is_safe = FALSE THEN
     RETURN is_safe;
 END IF;
+
+UPDATE safety_steps
+SET lvl4 = current_lvl
+WHERE id = p_report_id;
 
 SET delta_lvl = current_lvl - prev_lvl;
 SET is_safe = is_delta_safe(delta_lvl, expected_sign);
@@ -122,9 +141,13 @@ INTO current_lvl
 FROM report
 WHERE id = p_report_id;
 
-IF current_lvl IS NULL THEN
+IF current_lvl IS NULL OR is_safe = FALSE THEN
     RETURN is_safe;
 END IF;
+
+UPDATE safety_steps
+SET lvl5 = current_lvl
+WHERE id = p_report_id;
 
 SET delta_lvl = current_lvl - prev_lvl;
 SET is_safe = is_delta_safe(delta_lvl, expected_sign);
@@ -135,9 +158,13 @@ INTO current_lvl
 FROM report
 WHERE id = p_report_id;
 
-IF current_lvl IS NULL THEN
+IF current_lvl IS NULL OR is_safe = FALSE THEN
     RETURN is_safe;
 END IF;
+
+UPDATE safety_steps
+SET lvl6 = current_lvl
+WHERE id = p_report_id;
 
 SET delta_lvl = current_lvl - prev_lvl;
 SET is_safe = is_delta_safe(delta_lvl, expected_sign);
@@ -148,9 +175,13 @@ INTO current_lvl
 FROM report
 WHERE id = p_report_id;
 
-IF current_lvl IS NULL THEN
+IF current_lvl IS NULL OR is_safe = FALSE THEN
     RETURN is_safe;
 END IF;
+
+UPDATE safety_steps
+SET lvl7 = current_lvl
+WHERE id = p_report_id;
 
 SET delta_lvl = current_lvl - prev_lvl;
 SET is_safe = is_delta_safe(delta_lvl, expected_sign);
@@ -168,13 +199,20 @@ FIELDS TERMINATED BY " "
 
 UPDATE report
 SET is_safe = is_report_safe(id)
-WHERE lvl0 IS NOT NULL;
+WHERE id IS NOT NULL;
 
 SELECT *
 FROM report;
 
+SELECT *
+FROM safety_steps;
+
+SET @puzzle1_answer = -1;
 SELECT COUNT(*)
+INTO @puzzle1_answer
 FROM report
 WHERE is_safe = TRUE;
+
+SELECT @puzzle1_answer;
 
 DROP DATABASE IF EXISTS day2;
