@@ -49,10 +49,9 @@ SELECT
     ABS(left_location - right_location) AS distance
 FROM v_locations;
 
-SELECT *
-FROM v_distances;
-
-SELECT SUM(distance) AS puzzle1_result
+SET @puzzle1_answer = -1;
+SELECT SUM(distance)
+INTO @puzzle1_answer
 FROM v_distances;
 
 -- Puzzle 2
@@ -90,7 +89,11 @@ RETURN nb_loc_id_occs;
 END$$
 DELIMITER ;
 
-SELECT SUM(location_id * count_id_occurrences(location_id)) AS puzzle2_result
+SET @puzzle2_answer = -1;
+SELECT SUM(location_id * count_id_occurrences(location_id))
+INTO @puzzle2_answer
 FROM left_list;
+
+SELECT @puzzle1_answer, @puzzle2_answer;
 
 DROP DATABASE day1;
