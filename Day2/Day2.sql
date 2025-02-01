@@ -1,7 +1,8 @@
 CREATE DATABASE IF NOT EXISTS day2;
 USE day2;
 
-CREATE TABLE IF NOT EXISTS input (
+CREATE TABLE IF NOT EXISTS report (
+    id INT PRIMARY KEY UNIQUE AUTO_INCREMENT,
     lvl0 INT,
     lvl1 INT,
     lvl2 INT,
@@ -9,80 +10,171 @@ CREATE TABLE IF NOT EXISTS input (
     lvl4 INT,
     lvl5 INT,
     lvl6 INT,
-    lvl7 INT
+    lvl7 INT,
+    is_safe INT DEFAULT 0,
+CONSTRAINT boolean CHECK (is_safe = 0 OR is_safe = 1)
 );
+TRUNCATE report;
 
-CREATE TABLE IF NOT EXISTS lvl (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    val INT,
-    next_lvl_id INT,
-FOREIGN KEY (next_lvl_id) REFERENCES lvl(id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS safety (
+    id INT PRIMARY KEY UNIQUE,
+    lvl0 INT,
+    lvl1 INT,
+    lvl2 INT,
+    lvl3 INT,
+    lvl4 INT,
+    lvl5 INT,
+    lvl6 INT,
+    lvl7 INT,
+FOREIGN KEY (id) REFERENCES report(id)
 );
-
-CREATE TABLE IF NOT EXISTS report (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    first_lvl_id INT,
-    is_safe INT,
-FOREIGN KEY (first_lvl_id) REFERENCES lvl(id) ON DELETE CASCADE,
-CONSTRAINT boolean CHECK (is_safe IN (0, 1))
-);
+TRUNCATE safety;
 
 DELIMITER $$
+CREATE FUNCTION is_delta_safe(p_delta INT, p_expected_sign INT) RETURNS INT
+NO SQL
+BEGIN
+DECLARE is_sign_correct INT;
+DECLARE is_value_safe INT;
+DECLARE delta_abs INT;
+
+SET delta_abs = ABS(p_delta);
+SET is_value_safe = delta_abs >= 1 AND delta_abs <= 3;
+SET is_sign_correct = p_expected_sign IS NULL OR SIGN(p_delta) = p_expected_sign;
+
+RETURN is_value_safe AND is_sign_correct;
+END$$
+
 CREATE FUNCTION is_report_safe(p_report_id INT) RETURNS INT
-NOT DETERMINISTIC
+READS SQL DATA
 BEGIN
 DECLARE is_safe INT;
-SET @is_safe = 1;
-SET @prev_lvl_id = NULL;
-SET @prev_lvl_val = NULL;
-SET @current_lvl_id = NULL;
-SET @current_lvl_val = NULL;
-SET @delta_val = NULL;
-SET @is_increasing = NULL;
+DECLARE prev_lvl INT;
+DECLARE current_lvl INT;
+DECLARE delta_lvl INT;
+DECLARE expected_sign INT;
+SET expected_sign = NULL;
 
-SELECT id, val
-INTO @prev_lvl_id, @prev_lvl_val
-FROM lvl
-WHERE id = (
-    SELECT first_lvl_id
-    FROM report
-    WHERE report_id = p_report_id
-);
+SELECT lvl0
+INTO prev_lvl
+FROM report
+WHERE id = p_report_id;
 
-safety: LOOP
-    SELECT next_lvl_id
-    INTO @current_lvl_id
-    FROM lvl
-    WHERE id = @prev_lvl_id;
+IF prev_lvl IS NULL THEN
+    RETURN TRUE;
+END IF;
 
-    IF @current_lvl_id IS NULL THEN
-        LEAVE safety;
-    END IF;
+SELECT lvl1
+INTO current_lvl
+FROM report
+WHERE id = p_report_id;
 
-    SELECT val
-    INTO @current_lvl_val
-    FROM lvl
-    WHERE id = @current_lvl_id;
+IF current_lvl IS NULL THEN
+    RETURN TRUE;
+END IF;
 
-    SET @delta_val = @current_lvl_val - @prev_lvl_val;
-    SET @delta_val_abs = ABS(@delta_abs);
+SET delta_lvl = current_lvl - prev_lvl;
+SET is_safe = is_delta_safe(delta_lvl, expected_sign);
+SET expected_sign = SIGN(delta_lvl);
+SET prev_lvl = current_lvl;
 
-    IF @is_increasing IS NULL THEN
-        SET @is_increasing = @delta_val > 0;
-    ELSE IF (@delta_val > 0) != @is_increasing THEN
-        SET @is_safe = 0;
-        LEAVE safety;
-    ELSE IF @delta_val_abs < 1 OR @delta_val_abs > 3 THEN
-        SET @is_safe = 0;
-        LEAVE safety;
-    END IF;
+SELECT lvl2
+INTO current_lvl
+FROM report
+WHERE id = p_report_id;
 
-    SET @prev_lvl_id = @current_lvl_id;
-    SET @prev_lvl_val = @current_lvl_val;
-END LOOP;
+IF current_lvl IS NULL THEN
+    RETURN is_safe;
+END IF;
+
+SET delta_lvl = current_lvl - prev_lvl;
+SET is_safe = is_delta_safe(delta_lvl, expected_sign);
+SET prev_lvl = current_lvl;
+
+SELECT lvl3
+INTO current_lvl
+FROM report
+WHERE id = p_report_id;
+
+IF current_lvl IS NULL THEN
+    RETURN is_safe;
+END IF;
+
+SET delta_lvl = current_lvl - prev_lvl;
+SET is_safe = is_delta_safe(delta_lvl, expected_sign);
+SET prev_lvl = current_lvl;
+
+SELECT lvl4
+INTO current_lvl
+FROM report
+WHERE id = p_report_id;
+
+IF current_lvl IS NULL THEN
+    RETURN is_safe;
+END IF;
+
+SET delta_lvl = current_lvl - prev_lvl;
+SET is_safe = is_delta_safe(delta_lvl, expected_sign);
+SET prev_lvl = current_lvl;
+
+SELECT lvl5
+INTO current_lvl
+FROM report
+WHERE id = p_report_id;
+
+IF current_lvl IS NULL THEN
+    RETURN is_safe;
+END IF;
+
+SET delta_lvl = current_lvl - prev_lvl;
+SET is_safe = is_delta_safe(delta_lvl, expected_sign);
+SET prev_lvl = current_lvl;
+
+SELECT lvl6
+INTO current_lvl
+FROM report
+WHERE id = p_report_id;
+
+IF current_lvl IS NULL THEN
+    RETURN is_safe;
+END IF;
+
+SET delta_lvl = current_lvl - prev_lvl;
+SET is_safe = is_delta_safe(delta_lvl, expected_sign);
+SET prev_lvl = current_lvl;
+
+SELECT lvl7
+INTO current_lvl
+FROM report
+WHERE id = p_report_id;
+
+IF current_lvl IS NULL THEN
+    RETURN is_safe;
+END IF;
+
+SET delta_lvl = current_lvl - prev_lvl;
+SET is_safe = is_delta_safe(delta_lvl, expected_sign);
+SET prev_lvl = current_lvl;
 
 RETURN is_safe;
 END$$
 DELIMITER ;
+
+-- Absolute path required
+LOAD DATA LOCAL INFILE "Day2Sample.txt"
+INTO TABLE report
+FIELDS TERMINATED BY " "
+(lvl0, lvl1, lvl2, lvl3, lvl4, lvl5, lvl6, lvl7);
+
+UPDATE report
+SET is_safe = is_report_safe(id)
+WHERE lvl0 IS NOT NULL;
+
+SELECT *
+FROM report;
+
+SELECT COUNT(*)
+FROM report
+WHERE is_safe = TRUE;
 
 DROP DATABASE IF EXISTS day2;
