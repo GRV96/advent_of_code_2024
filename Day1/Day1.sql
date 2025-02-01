@@ -1,96 +1,96 @@
-CREATE DATABASE IF NOT EXISTS DAY1;
-USE DAY1;
+CREATE DATABASE IF NOT EXISTS day1;
+USE day1;
 
-CREATE TABLE IF NOT EXISTS Input (
-    locationId1 INT,
-    locationId2 INT
+CREATE TABLE IF NOT EXISTS input (
+    location_id_1 INT,
+    location_id_2 INT
 );
 
-CREATE TABLE IF NOT EXISTS LeftList (
+CREATE TABLE IF NOT EXISTS left_list (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    locationId INT
+    location_id INT
 );
 
-CREATE TABLE IF NOT EXISTS RightList (
+CREATE TABLE IF NOT EXISTS right_list (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    locationId INT
+    location_id INT
 );
 
 -- Absolute path required
 LOAD DATA LOCAL INFILE "Day1Puzzle.txt"
-INTO TABLE Input
+INTO TABLE input
 FIELDS TERMINATED BY "   "; -- 3 spaces
 
-INSERT INTO LeftList (locationId) (
-    SELECT locationId1
-    FROM Input
-    ORDER BY locationId1
+INSERT INTO left_list (location_id) (
+    SELECT location_id_1
+    FROM input
+    ORDER BY location_id_1
 );
 
-INSERT INTO RightList (locationId) (
-    SELECT locationId2
-    FROM Input
-    ORDER BY locationId2
+INSERT INTO right_list (location_id) (
+    SELECT location_id_2
+    FROM input
+    ORDER BY location_id_2
 );
 
-CREATE OR REPLACE VIEW vLocations AS 
+CREATE OR REPLACE VIEW v_locations AS 
 SELECT
-    L.locationId AS leftLocation,
-    R.locationId AS rightLocation
-FROM LeftList L
-INNER JOIN RightList R
-ON L.id = R.id;
+    l.location_id AS left_location,
+    r.location_id AS right_location
+FROM left_list l
+INNER JOIN right_list r
+ON l.id = r.id;
 
 -- Puzzle 1
-CREATE OR REPLACE VIEW vDistances AS 
+CREATE OR REPLACE VIEW v_distances AS 
 SELECT
-    leftLocation,
-    rightLocation,
-    ABS(leftLocation - rightLocation) AS distance
-FROM vLocations;
+    left_location,
+    right_location,
+    ABS(left_location - right_location) AS distance
+FROM v_locations;
 
 SELECT *
-FROM vDistances;
+FROM v_distances;
 
-SELECT SUM(distance) AS puzzle1Result
-FROM vDistances;
+SELECT SUM(distance) AS puzzle1_result
+FROM v_distances;
 
 -- Puzzle 2
-CREATE TABLE IF NOT EXISTS LocIdOccurrences (
-    locId INT,
-    nbOccurrences INT
+CREATE TABLE IF NOT EXISTS loc_id_occurrences (
+    loc_id INT,
+    nb_occurrences INT
 );
 
 DELIMITER $$
-CREATE FUNCTION countIdOccurrences(pLocationId INT) RETURNS INT
+CREATE FUNCTION count_id_occurrences(p_location_id INT) RETURNS INT
 READS SQL DATA
 BEGIN
-DECLARE nbLocIdOccs INT;
+DECLARE nb_loc_id_occs INT;
 
-SELECT nbOccurrences
-INTO nbLocIdOccs
-FROM LocIdOccurrences
-WHERE locId = pLocationId;
+SELECT nb_occurrences
+INTO nb_loc_id_occs
+FROM loc_id_occurrences
+WHERE loc_id = p_location_id;
 
-IF nbLocIdOccs IS NULL THEN
-    SELECT COUNT(locationId)
-    INTO nbLocIdOccs
-    FROM RightList
-    WHERE locationId = pLocationId;
+IF nb_loc_id_occs IS NULL THEN
+    SELECT COUNT(location_id)
+    INTO nb_loc_id_occs
+    FROM right_list
+    WHERE location_id = p_location_id;
     
-    IF nbLocIdOccs IS NULL THEN
-        SET nbLocIdOccs = 0;
+    IF nb_loc_id_occs IS NULL THEN
+        SET nb_loc_id_occs = 0;
     END IF;
 
-    INSERT INTO LocIdOccurrences VALUES
-    (pLocationId, nbLocIdOccs);
+    INSERT INTO loc_id_occurrences VALUES
+    (p_location_id, nb_loc_id_occs);
 END IF;
 
-RETURN nbLocIdOccs;
+RETURN nb_loc_id_occs;
 END$$
 DELIMITER ;
 
-SELECT SUM(locationId * countIdOccurrences(locationId)) AS similarityScore
-FROM LeftList;
+SELECT SUM(location_id * count_id_occurrences(location_id)) AS puzzle2_result
+FROM left_list;
 
-DROP DATABASE DAY1;
+DROP DATABASE day1;
