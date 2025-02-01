@@ -2,40 +2,40 @@ CREATE DATABASE IF NOT EXISTS DAY1;
 USE DAY1;
 
 CREATE TABLE IF NOT EXISTS Input (
-	locationId1 INT,
-	locationId2 INT
+    locationId1 INT,
+    locationId2 INT
 );
 
 CREATE TABLE IF NOT EXISTS LeftList (
-	id INT PRIMARY KEY AUTO_INCREMENT,
-	locationId INT
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    locationId INT
 );
 
 CREATE TABLE IF NOT EXISTS RightList (
-	id INT PRIMARY KEY AUTO_INCREMENT,
-	locationId INT
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    locationId INT
 );
 
 -- Absolute path required
-LOAD DATA LOCAL INFILE "Day1Sample.txt"
+LOAD DATA LOCAL INFILE "Day1Puzzle.txt"
 INTO TABLE Input
 FIELDS TERMINATED BY "   "; -- 3 spaces
 
 INSERT INTO LeftList (locationId) (
-	SELECT locationId1
+    SELECT locationId1
     FROM Input
     ORDER BY locationId1
 );
 
 INSERT INTO RightList (locationId) (
-	SELECT locationId2
+    SELECT locationId2
     FROM Input
     ORDER BY locationId2
 );
 
 CREATE OR REPLACE VIEW vLocations AS 
 SELECT
-	L.locationId AS leftLocation,
+    L.locationId AS leftLocation,
     R.locationId AS rightLocation
 FROM LeftList L
 INNER JOIN RightList R
@@ -44,7 +44,7 @@ ON L.id = R.id;
 -- Puzzle 1
 CREATE OR REPLACE VIEW vDistances AS 
 SELECT
-	leftLocation,
+    leftLocation,
     rightLocation,
     ABS(leftLocation - rightLocation) AS distance
 FROM vLocations;
@@ -56,6 +56,41 @@ SELECT SUM(distance) AS puzzle1Result
 FROM vDistances;
 
 -- Puzzle 2
--- TODO
+CREATE TABLE IF NOT EXISTS LocIdOccurrences (
+    locId INT,
+    nbOccurrences INT
+);
+
+DELIMITER $$
+CREATE FUNCTION countIdOccurrences(pLocationId INT) RETURNS INT
+READS SQL DATA
+BEGIN
+DECLARE nbLocIdOccs INT;
+
+SELECT nbOccurrences
+INTO nbLocIdOccs
+FROM LocIdOccurrences
+WHERE locId = pLocationId;
+
+IF nbLocIdOccs IS NULL THEN
+    SELECT COUNT(locationId)
+    INTO nbLocIdOccs
+    FROM RightList
+    WHERE locationId = pLocationId;
+    
+    IF nbLocIdOccs IS NULL THEN
+        SET nbLocIdOccs = 0;
+    END IF;
+
+    INSERT INTO LocIdOccurrences VALUES
+    (pLocationId, nbLocIdOccs);
+END IF;
+
+RETURN nbLocIdOccs;
+END$$
+DELIMITER ;
+
+SELECT SUM(locationId * countIdOccurrences(locationId)) AS similarityScore
+FROM LeftList;
 
 DROP DATABASE DAY1;
