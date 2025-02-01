@@ -33,6 +33,7 @@ INSERT INTO right_list (location_id) (
     ORDER BY location_id_right
 );
 
+-- Puzzle 1
 CREATE OR REPLACE VIEW v_locations AS 
 SELECT
     l.location_id AS left_location,
@@ -41,7 +42,6 @@ FROM left_list l
 INNER JOIN right_list r
 ON l.id = r.id;
 
--- Puzzle 1
 CREATE OR REPLACE VIEW v_distances AS 
 SELECT
     left_location,
