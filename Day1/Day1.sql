@@ -2,8 +2,8 @@ CREATE DATABASE IF NOT EXISTS day1;
 USE day1;
 
 CREATE TABLE IF NOT EXISTS input (
-    location_id_1 INT,
-    location_id_2 INT
+    location_id_left INT,
+    location_id_right INT
 );
 
 CREATE TABLE IF NOT EXISTS left_list (
@@ -22,15 +22,15 @@ INTO TABLE input
 FIELDS TERMINATED BY "   "; -- 3 spaces
 
 INSERT INTO left_list (location_id) (
-    SELECT location_id_1
+    SELECT location_id_left
     FROM input
-    ORDER BY location_id_1
+    ORDER BY location_id_left
 );
 
 INSERT INTO right_list (location_id) (
-    SELECT location_id_2
+    SELECT location_id_right
     FROM input
-    ORDER BY location_id_2
+    ORDER BY location_id_right
 );
 
 CREATE OR REPLACE VIEW v_locations AS 
