@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS input (
     lvl6 INT,
     lvl7 INT
 );
-TRUNCATE report;
+TRUNCATE input;
 
 CREATE TABLE IF NOT EXISTS lvl (
     id INT PRIMARY KEY UNIQUE AUTO_INCREMENT,
@@ -61,7 +61,7 @@ INSERT INTO lvl (val) VALUES
 SET p_lvl_id = get_last_lvl_id();
 
 IF prev_lvl_id IS NOT NULL THEN
-	CALL set_next_lvl_id(prev_lvl_id, p_lvl_id);
+    CALL set_next_lvl_id(prev_lvl_id, p_lvl_id);
 END IF;
 END$$
 
@@ -192,6 +192,29 @@ INSERT INTO report (id, first_lvl_id) VALUES
 (p_input_id, first_lvl_id);
 END$$
 
+CREATE PROCEDURE make_all_reports()
+BEGIN
+DECLARE lvl_id INT;
+DECLARE done INT DEFAULT FALSE;
+DECLARE in_id_cur CURSOR FOR
+    SELECT id
+    FROM input
+    WHERE id IS NOT NULL;
+DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+
+OPEN in_id_cur;
+in_loop: LOOP
+    FETCH NEXT FROM in_id_cur INTO lvl_id;
+
+    IF done THEN
+        LEAVE in_loop;
+    END IF;
+
+    CALL make_report(lvl_id);
+END LOOP;
+CLOSE in_id_cur;
+END$$
+
 CREATE PROCEDURE get_lvl_data(IN p_lvl_id INT, OUT p_lvl_val INT, OUT p_next_lvl_id INT)
 BEGIN
 SELECT val, next_lvl_id
@@ -221,8 +244,9 @@ SET is_sign_correct = p_expected_sign IS NULL OR SIGN(p_delta) = p_expected_sign
 RETURN is_value_safe AND is_sign_correct;
 END$$
 
-CREATE PROCEDURE remove_bad_levels(IN p_report_id INT, OUT p_nb_bad_levels INT)
+CREATE PROCEDURE remove_bad_levels(IN p_report_id INT)
 BEGIN
+DECLARE nb_bad_lvls INT;
 DECLARE prev_lvl_id INT;
 DECLARE prev_lvl_val INT;
 DECLARE current_lvl_id INT;
@@ -230,11 +254,12 @@ DECLARE current_lvl_val INT;
 DECLARE next_lvl_id INT;
 DECLARE delta_lvl_val INT;
 DECLARE expected_sign INT;
-SET p_nb_bad_levels = 0;
+SET nb_bad_lvls = 0;
 SET prev_lvl_id = NULL;
 SET prev_lvl_val = NULL;
 SET current_lvl_id = NULL;
 SET current_lvl_val = NULL;
+SET next_lvl_id = NULL;
 SET delta_lvl_val = NULL;
 SET expected_sign = NULL;
 
@@ -243,44 +268,70 @@ INTO prev_lvl_id
 FROM report
 WHERE id = p_report_id;
 
-CALL get_lvl_data(prev_lvl_id, prev_lvl_val, next_lvl_id);
-SET current_lvl_id = next_lvl_id;
+CALL get_lvl_data(prev_lvl_id, prev_lvl_val, current_lvl_id);
 
 bad_lvl_loop: LOOP
+IF current_lvl_id IS NULL THEN
+    LEAVE bad_lvl_loop;
+END IF;
+
 CALL get_lvl_data(current_lvl_id, current_lvl_val, next_lvl_id);
 SET delta_lvl_val = current_lvl_val - prev_lvl_val;
 
 IF is_delta_safe(delta_lvl_val, expected_sign) THEN
     SET current_lvl_id = next_lvl_id;
+
+    IF expected_sign IS NULL THEN
+        SET expected_sign = sign(delta_lvl_val);
+    END IF;
 ELSE
     CALL set_next_lvl_id(prev_lvl_id, next_lvl_id);
     CALL del_lvl(current_lvl_id);
-    SET nb_bad_levels = nb_bad_levels + 1;
+    SET nb_bad_lvls = nb_bad_lvls + 1;
 END IF;
 
-IF expected_sign IS NULL THEN
-    SET expected_sign = sign(delta_lvl_val);
-END IF;
+SET prev_lvl_id = current_lvl_id;
+SET prev_lvl_val = current_lvl_val;
+SET current_lvl_id = next_lvl_id;
 END LOOP;
 
+UPDATE lvl
+SET nb_bad_levels = nb_bad_lvls
+WHERE id = p_report_id;
+END$$
+
+CREATE PROCEDURE remove_all_bad_levels()
+BEGIN
+DECLARE report_id INT;
+DECLARE done INT DEFAULT FALSE;
+DECLARE report_id_cur CURSOR FOR
+    SELECT id
+    FROM report
+    WHERE id IS NOT NULL;
+DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+
+OPEN report_id_cur;
+report_loop: LOOP
+    FETCH NEXT FROM report_id_cur INTO report_id;
+
+    IF done THEN
+        LEAVE report_loop;
+    END IF;
+
+    CALL remove_bad_levels(report_id);
+END LOOP;
+CLOSE report_id_cur;
 END$$
 DELIMITER ;
 
 -- Absolute path required
 LOAD DATA LOCAL INFILE "Day2Sample.txt"
-INTO TABLE report
+INTO TABLE input
 FIELDS TERMINATED BY " "
 (lvl0, lvl1, lvl2, lvl3, lvl4, lvl5, lvl6, lvl7);
 
-UPDATE report
-SET nb_bad_levels = count_bad_levels(id)
-WHERE id IS NOT NULL;
-
-SELECT *
-FROM report;
-
-SELECT *
-FROM safety_steps;
+CALL make_all_reports();
+CALL remove_all_bad_levels();
 
 SET @puzzle1_answer = -1;
 SELECT COUNT(*)
