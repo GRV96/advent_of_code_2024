@@ -328,7 +328,7 @@ END$$
 DELIMITER ;
 
 -- Absolute path required
-LOAD DATA LOCAL INFILE "Day2Sample.txt"
+LOAD DATA LOCAL INFILE "Day2Puzzle.txt"
 INTO TABLE input
 FIELDS TERMINATED BY " "
 (lvl0, lvl1, lvl2, lvl3, lvl4, lvl5, lvl6, lvl7);
