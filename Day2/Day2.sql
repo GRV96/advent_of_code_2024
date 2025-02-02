@@ -60,8 +60,8 @@ INSERT INTO lvl (val) VALUES
 (lvl_val);
 SET p_lvl_id = get_last_lvl_id();
 
-IF prev_lvl_id IS NOT NULL THEN
-    CALL set_next_lvl_id(prev_lvl_id, p_lvl_id);
+IF p_prev_lvl_id IS NOT NULL THEN
+    CALL set_next_lvl_id(p_prev_lvl_id, p_lvl_id);
 END IF;
 END$$
 
@@ -295,7 +295,7 @@ SET prev_lvl_val = current_lvl_val;
 SET current_lvl_id = next_lvl_id;
 END LOOP;
 
-UPDATE lvl
+UPDATE report
 SET nb_bad_levels = nb_bad_lvls
 WHERE id = p_report_id;
 END$$
