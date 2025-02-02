@@ -22,8 +22,14 @@ FOREIGN KEY (next_lvl_id) REFERENCES lvl(id)
 );
 TRUNCATE lvl;
 
+CREATE TABLE IF NOT EXISTS lvl_chain (
+    id INT PRIMARY KEY UNIQUE AUTO_INCREMENT,
+    as_text VARCHAR(300)
+);
+TRUNCATE lvl_chain;
+
 CREATE TABLE IF NOT EXISTS report (
-    id INT PRIMARY KEY UNIQUE,
+    id INT PRIMARY KEY UNIQUE AUTO_INCREMENT,
     first_lvl_id INT,
     nb_bad_levels INT DEFAULT -1,
 FOREIGN KEY (first_lvl_id) REFERENCES lvl(id)
@@ -248,6 +254,36 @@ SET is_sign_correct = p_expected_sign IS NULL OR SIGN(p_delta) = p_expected_sign
 RETURN is_value_safe AND is_sign_correct;
 END$$
 
+CREATE PROCEDURE make_lvl_chain(IN p_report_id INT)
+BEGIN
+DECLARE current_lvl_id INT;
+DECLARE current_lvl_val INT;
+DECLARE next_lvl_id INT;
+DECLARE chain_as_text VARCHAR(30);
+SET current_lvl_val = NULL;
+SET next_lvl_id = NULL;
+SET chain_as_text = "";
+
+SELECT first_lvl_id
+INTO current_lvl_id
+FROM report
+WHERE id = p_report_id;
+
+lvl_chain_loop: LOOP
+CALL get_lvl_data(current_lvl_id, current_lvl_val, next_lvl_id);
+SET chain_as_text = CONCAT(chain_as_text, " ", current_lvl_val);
+
+IF next_lvl_id IS NULL THEN
+    LEAVE lvl_chain_loop;
+END IF;
+
+SET current_lvl_id = next_lvl_id;
+END LOOP;
+
+INSERT INTO lvl_chain VALUES
+(p_report_id, chain_as_text);
+END$$
+
 CREATE PROCEDURE remove_bad_levels(IN p_report_id INT)
 BEGIN
 DECLARE nb_bad_lvls INT;
@@ -301,6 +337,8 @@ END LOOP;
 UPDATE report
 SET nb_bad_levels = nb_bad_lvls
 WHERE id = p_report_id;
+
+CALL make_lvl_chain(p_report_id);
 END$$
 
 CREATE PROCEDURE remove_all_bad_levels()
@@ -328,13 +366,19 @@ END$$
 DELIMITER ;
 
 -- Absolute path required
-LOAD DATA LOCAL INFILE "Day2Puzzle.txt"
+LOAD DATA LOCAL INFILE "Day2Sample.txt"
 INTO TABLE input
 FIELDS TERMINATED BY " "
 (lvl0, lvl1, lvl2, lvl3, lvl4, lvl5, lvl6, lvl7);
 
 CALL make_all_reports();
 CALL remove_all_bad_levels();
+
+SELECT *
+FROM report;
+
+SELECT *
+FROM lvl_chain;
 
 SET @puzzle1_answer = -1;
 SELECT COUNT(*)
