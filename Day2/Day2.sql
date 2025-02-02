@@ -1,7 +1,7 @@
 CREATE DATABASE IF NOT EXISTS day2;
 USE day2;
 
-CREATE TABLE IF NOT EXISTS report (
+CREATE TABLE IF NOT EXISTS input (
     id INT PRIMARY KEY UNIQUE AUTO_INCREMENT,
     lvl0 INT,
     lvl1 INT,
@@ -10,26 +10,203 @@ CREATE TABLE IF NOT EXISTS report (
     lvl4 INT,
     lvl5 INT,
     lvl6 INT,
-    lvl7 INT,
-    nb_bad_levels INT
+    lvl7 INT
 );
 TRUNCATE report;
 
-CREATE TABLE IF NOT EXISTS safety_steps (
-    id INT PRIMARY KEY UNIQUE,
-    lvl0 INT,
-    lvl1 INT,
-    lvl2 INT,
-    lvl3 INT,
-    lvl4 INT,
-    lvl5 INT,
-    lvl6 INT,
-    lvl7 INT,
-FOREIGN KEY (id) REFERENCES report(id)
+CREATE TABLE IF NOT EXISTS lvl (
+    id INT PRIMARY KEY UNIQUE AUTO_INCREMENT,
+    val INT,
+    next_lvl_id INT,
+FOREIGN KEY (next_lvl_id) REFERENCES lvl(id)
 );
-TRUNCATE safety_steps;
+TRUNCATE lvl;
+
+CREATE TABLE IF NOT EXISTS report (
+    id INT PRIMARY KEY UNIQUE,
+    first_lvl_id INT,
+    nb_bad_levels INT DEFAULT -1,
+FOREIGN KEY (first_lvl_id) REFERENCES lvl(id)
+);
+TRUNCATE report;
 
 DELIMITER $$
+CREATE FUNCTION get_last_lvl_id() RETURNS INT
+NOT DETERMINISTIC
+READS SQL DATA
+BEGIN
+DECLARE last_id INT;
+
+SELECT id
+INTO last_id
+FROM lvl
+ORDER BY id DESC
+LIMIT 1;
+
+RETURN last_id;
+END$$
+
+CREATE PROCEDURE set_next_lvl_id(IN p_lvl_id INT, IN p_next_lvl_id INT)
+DETERMINISTIC
+BEGIN
+UPDATE lvl
+SET next_lvl_id = p_next_lvl_id
+WHERE id = p_lvl_id;
+END$$
+
+CREATE PROCEDURE make_lvl(IN lvl_val INT, IN p_prev_lvl_id INT, OUT p_lvl_id INT)
+BEGIN
+INSERT INTO lvl (val) VALUES
+(lvl_val);
+SET p_lvl_id = get_last_lvl_id();
+
+IF prev_lvl_id IS NOT NULL THEN
+	CALL set_next_lvl_id(prev_lvl_id, p_lvl_id);
+END IF;
+END$$
+
+CREATE PROCEDURE make_report(IN p_input_id INT)
+BEGIN
+DECLARE first_lvl_id INT;
+DECLARE prev_lvl_id INT;
+DECLARE lvl_val INT;
+DECLARE current_lvl_id INT;
+SET first_lvl_id = NULL;
+SET prev_lvl_id = NULL;
+SET lvl_val = NULL;
+SET current_lvl_id = NULL;
+
+SELECT lvl0
+INTO lvl_val
+FROM input
+WHERE id = p_input_id;
+
+IF lvl_val IS NOT NULL THEN
+    CALL make_lvl(lvl_val, prev_lvl_id, current_lvl_id);
+    SET prev_lvl_id = current_lvl_id;
+
+    IF first_lvl_id IS NULL THEN
+        SET first_lvl_id = current_lvl_id;
+    END IF;
+END IF;
+
+SELECT lvl1
+INTO lvl_val
+FROM input
+WHERE id = p_input_id;
+
+IF lvl_val IS NOT NULL THEN
+    CALL make_lvl(lvl_val, prev_lvl_id, current_lvl_id);
+    SET prev_lvl_id = current_lvl_id;
+
+    IF first_lvl_id IS NULL THEN
+        SET first_lvl_id = current_lvl_id;
+    END IF;
+END IF;
+
+SELECT lvl2
+INTO lvl_val
+FROM input
+WHERE id = p_input_id;
+
+IF lvl_val IS NOT NULL THEN
+    CALL make_lvl(lvl_val, prev_lvl_id, current_lvl_id);
+    SET prev_lvl_id = current_lvl_id;
+
+    IF first_lvl_id IS NULL THEN
+        SET first_lvl_id = current_lvl_id;
+    END IF;
+END IF;
+
+SELECT lvl3
+INTO lvl_val
+FROM input
+WHERE id = p_input_id;
+
+IF lvl_val IS NOT NULL THEN
+    CALL make_lvl(lvl_val, prev_lvl_id, current_lvl_id);
+    SET prev_lvl_id = current_lvl_id;
+
+    IF first_lvl_id IS NULL THEN
+        SET first_lvl_id = current_lvl_id;
+    END IF;
+END IF;
+
+SELECT lvl4
+INTO lvl_val
+FROM input
+WHERE id = p_input_id;
+
+IF lvl_val IS NOT NULL THEN
+    CALL make_lvl(lvl_val, prev_lvl_id, current_lvl_id);
+    SET prev_lvl_id = current_lvl_id;
+
+    IF first_lvl_id IS NULL THEN
+        SET first_lvl_id = current_lvl_id;
+    END IF;
+END IF;
+
+SELECT lvl5
+INTO lvl_val
+FROM input
+WHERE id = p_input_id;
+
+IF lvl_val IS NOT NULL THEN
+    CALL make_lvl(lvl_val, prev_lvl_id, current_lvl_id);
+    SET prev_lvl_id = current_lvl_id;
+
+    IF first_lvl_id IS NULL THEN
+        SET first_lvl_id = current_lvl_id;
+    END IF;
+END IF;
+
+SELECT lvl6
+INTO lvl_val
+FROM input
+WHERE id = p_input_id;
+
+IF lvl_val IS NOT NULL THEN
+    CALL make_lvl(lvl_val, prev_lvl_id, current_lvl_id);
+    SET prev_lvl_id = current_lvl_id;
+
+    IF first_lvl_id IS NULL THEN
+        SET first_lvl_id = current_lvl_id;
+    END IF;
+END IF;
+
+SELECT lvl7
+INTO lvl_val
+FROM input
+WHERE id = p_input_id;
+
+IF lvl_val IS NOT NULL THEN
+    CALL make_lvl(lvl_val, prev_lvl_id, current_lvl_id);
+    SET prev_lvl_id = current_lvl_id;
+
+    IF first_lvl_id IS NULL THEN
+        SET first_lvl_id = current_lvl_id;
+    END IF;
+END IF;
+
+INSERT INTO report (id, first_lvl_id) VALUES
+(p_input_id, first_lvl_id);
+END$$
+
+CREATE PROCEDURE get_lvl_data(IN p_lvl_id INT, OUT p_lvl_val INT, OUT p_next_lvl_id INT)
+BEGIN
+SELECT val, next_lvl_id
+INTO p_lvl_val, p_next_lvl_id
+FROM lvl
+WHERE id = p_lvl_id;
+END$$
+
+CREATE PROCEDURE del_lvl(IN p_lvl_id INT)
+BEGIN
+DELETE
+FROM lvl
+WHERE id = p_lvl_id;
+END$$
+
 CREATE FUNCTION is_delta_safe(p_delta INT, p_expected_sign INT) RETURNS INT
 NO SQL
 BEGIN
@@ -44,164 +221,48 @@ SET is_sign_correct = p_expected_sign IS NULL OR SIGN(p_delta) = p_expected_sign
 RETURN is_value_safe AND is_sign_correct;
 END$$
 
-CREATE FUNCTION count_bad_levels(p_report_id INT) RETURNS INT
-READS SQL DATA
+CREATE PROCEDURE remove_bad_levels(IN p_report_id INT, OUT p_nb_bad_levels INT)
 BEGIN
-DECLARE nb_bad_levels INT;
-DECLARE prev_lvl INT;
-DECLARE current_lvl INT;
-DECLARE delta_lvl INT;
+DECLARE prev_lvl_id INT;
+DECLARE prev_lvl_val INT;
+DECLARE current_lvl_id INT;
+DECLARE current_lvl_val INT;
+DECLARE next_lvl_id INT;
+DECLARE delta_lvl_val INT;
 DECLARE expected_sign INT;
-SET nb_bad_levels = 0;
+SET p_nb_bad_levels = 0;
+SET prev_lvl_id = NULL;
+SET prev_lvl_val = NULL;
+SET current_lvl_id = NULL;
+SET current_lvl_val = NULL;
+SET delta_lvl_val = NULL;
 SET expected_sign = NULL;
 
-SELECT lvl0
-INTO prev_lvl
+SELECT first_lvl_id
+INTO prev_lvl_id
 FROM report
 WHERE id = p_report_id;
 
-INSERT INTO safety_steps (id, lvl0) VALUES
-(p_report_id, nb_bad_levels);
+CALL get_lvl_data(prev_lvl_id, prev_lvl_val, next_lvl_id);
+SET current_lvl_id = next_lvl_id;
 
-IF prev_lvl IS NULL THEN
-    RETURN nb_bad_levels;
-END IF;
+bad_lvl_loop: LOOP
+CALL get_lvl_data(current_lvl_id, current_lvl_val, next_lvl_id);
+SET delta_lvl_val = current_lvl_val - prev_lvl_val;
 
-SELECT lvl1
-INTO current_lvl
-FROM report
-WHERE id = p_report_id;
-
-IF current_lvl IS NULL THEN
-    RETURN nb_bad_levels;
-END IF;
-
-SET delta_lvl = current_lvl - prev_lvl;
-IF NOT is_delta_safe(delta_lvl, expected_sign) THEN
+IF is_delta_safe(delta_lvl_val, expected_sign) THEN
+    SET current_lvl_id = next_lvl_id;
+ELSE
+    CALL set_next_lvl_id(prev_lvl_id, next_lvl_id);
+    CALL del_lvl(current_lvl_id);
     SET nb_bad_levels = nb_bad_levels + 1;
 END IF;
-SET prev_lvl = current_lvl;
-SET expected_sign = SIGN(delta_lvl);
 
-UPDATE safety_steps
-SET lvl1 = nb_bad_levels
-WHERE id = p_report_id;
-
-SELECT lvl2
-INTO current_lvl
-FROM report
-WHERE id = p_report_id;
-
-IF current_lvl IS NULL THEN
-    RETURN nb_bad_levels;
+IF expected_sign IS NULL THEN
+    SET expected_sign = sign(delta_lvl_val);
 END IF;
+END LOOP;
 
-SET delta_lvl = current_lvl - prev_lvl;
-IF NOT is_delta_safe(delta_lvl, expected_sign) THEN
-    SET nb_bad_levels = nb_bad_levels + 1;
-END IF;
-SET prev_lvl = current_lvl;
-
-UPDATE safety_steps
-SET lvl2 = nb_bad_levels
-WHERE id = p_report_id;
-
-SELECT lvl3
-INTO current_lvl
-FROM report
-WHERE id = p_report_id;
-
-IF current_lvl IS NULL THEN
-    RETURN nb_bad_levels;
-END IF;
-
-SET delta_lvl = current_lvl - prev_lvl;
-IF NOT is_delta_safe(delta_lvl, expected_sign) THEN
-    SET nb_bad_levels = nb_bad_levels + 1;
-END IF;
-SET prev_lvl = current_lvl;
-
-UPDATE safety_steps
-SET lvl3 = nb_bad_levels
-WHERE id = p_report_id;
-
-SELECT lvl4
-INTO current_lvl
-FROM report
-WHERE id = p_report_id;
-
-IF current_lvl IS NULL THEN
-    RETURN nb_bad_levels;
-END IF;
-
-SET delta_lvl = current_lvl - prev_lvl;
-IF NOT is_delta_safe(delta_lvl, expected_sign) THEN
-    SET nb_bad_levels = nb_bad_levels + 1;
-END IF;
-SET prev_lvl = current_lvl;
-
-UPDATE safety_steps
-SET lvl4 = nb_bad_levels
-WHERE id = p_report_id;
-
-SELECT lvl5
-INTO current_lvl
-FROM report
-WHERE id = p_report_id;
-
-IF current_lvl IS NULL THEN
-    RETURN nb_bad_levels;
-END IF;
-
-SET delta_lvl = current_lvl - prev_lvl;
-IF NOT is_delta_safe(delta_lvl, expected_sign) THEN
-    SET nb_bad_levels = nb_bad_levels + 1;
-END IF;
-SET prev_lvl = current_lvl;
-
-UPDATE safety_steps
-SET lvl5 = nb_bad_levels
-WHERE id = p_report_id;
-
-SELECT lvl6
-INTO current_lvl
-FROM report
-WHERE id = p_report_id;
-
-IF current_lvl IS NULL THEN
-    RETURN nb_bad_levels;
-END IF;
-
-SET delta_lvl = current_lvl - prev_lvl;
-IF NOT is_delta_safe(delta_lvl, expected_sign) THEN
-    SET nb_bad_levels = nb_bad_levels + 1;
-END IF;
-SET prev_lvl = current_lvl;
-
-UPDATE safety_steps
-SET lvl6 = nb_bad_levels
-WHERE id = p_report_id;
-
-SELECT lvl7
-INTO current_lvl
-FROM report
-WHERE id = p_report_id;
-
-IF current_lvl IS NULL THEN
-    RETURN nb_bad_levels;
-END IF;
-
-SET delta_lvl = current_lvl - prev_lvl;
-IF NOT is_delta_safe(delta_lvl, expected_sign) THEN
-    SET nb_bad_levels = nb_bad_levels + 1;
-END IF;
-SET prev_lvl = current_lvl;
-
-UPDATE safety_steps
-SET lvl7 = nb_bad_levels
-WHERE id = p_report_id;
-
-RETURN nb_bad_levels;
 END$$
 DELIMITER ;
 
