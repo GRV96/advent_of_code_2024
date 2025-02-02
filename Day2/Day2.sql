@@ -282,19 +282,18 @@ CALL get_lvl_data(current_lvl_id, current_lvl_val, next_lvl_id);
 SET delta_lvl_val = current_lvl_val - prev_lvl_val;
 
 IF is_delta_safe(delta_lvl_val, expected_sign) THEN
-    SET current_lvl_id = next_lvl_id;
+    SET prev_lvl_id = current_lvl_id;
+    SET prev_lvl_val = current_lvl_val;
 
     IF expected_sign IS NULL THEN
         SET expected_sign = sign(delta_lvl_val);
     END IF;
-ELSE
+ELSE # Delete the bad level.
     CALL set_next_lvl_id(prev_lvl_id, next_lvl_id);
     CALL del_lvl(current_lvl_id);
     SET nb_bad_lvls = nb_bad_lvls + 1;
 END IF;
 
-SET prev_lvl_id = current_lvl_id;
-SET prev_lvl_val = current_lvl_val;
 SET current_lvl_id = next_lvl_id;
 END LOOP;
 
