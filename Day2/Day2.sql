@@ -225,7 +225,7 @@ END$$
 
 CREATE PROCEDURE del_lvl(IN p_lvl_id INT)
 BEGIN
-# Normally, the referrencing record must be deleted before the referrenced record.
+# Normally, the referencing record must be deleted before the referenced record.
 SET FOREIGN_KEY_CHECKS=0;
 DELETE
 FROM lvl
