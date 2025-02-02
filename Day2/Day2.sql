@@ -229,15 +229,30 @@ FROM lvl
 WHERE id = p_lvl_id;
 END$$
 
+CREATE PROCEDURE get_lvl_val(IN p_lvl_id INT, OUT p_lvl_val INT)
+BEGIN
+SELECT val
+INTO p_lvl_val
+FROM lvl
+WHERE id = p_lvl_id;
+END$$
+
+CREATE PROCEDURE get_lvl_next_id(IN p_lvl_id INT, OUT p_next_lvl_id INT)
+BEGIN
+SELECT next_lvl_id
+INTO p_next_lvl_id
+FROM lvl
+WHERE id = p_lvl_id;
+END$$
+
 CREATE PROCEDURE del_lvl(IN p_lvl_id INT)
 BEGIN
-UPDATE lvl
-SET next_lvl_id = NULL
-WHERE id = p_lvl_id;
-
+# To prevent error 1451
+SET FOREIGN_KEY_CHECKS = 0;
 DELETE
 FROM lvl
 WHERE id = p_lvl_id;
+SET FOREIGN_KEY_CHECKS = 1;
 END$$
 
 CREATE FUNCTION is_delta_safe(p_delta INT, p_expected_sign INT) RETURNS INT
@@ -287,51 +302,60 @@ END$$
 CREATE PROCEDURE remove_bad_levels(IN p_report_id INT)
 BEGIN
 DECLARE nb_bad_lvls INT;
+DECLARE f_lvl_id INT;
 DECLARE prev_lvl_id INT;
-DECLARE prev_lvl_val INT;
 DECLARE current_lvl_id INT;
 DECLARE current_lvl_val INT;
 DECLARE next_lvl_id INT;
+DECLARE next_lvl_val INT;
 DECLARE delta_lvl_val INT;
 DECLARE expected_sign INT;
 SET nb_bad_lvls = 0;
+SET f_lvl_id = NULL;
 SET prev_lvl_id = NULL;
-SET prev_lvl_val = NULL;
 SET current_lvl_id = NULL;
 SET current_lvl_val = NULL;
 SET next_lvl_id = NULL;
+SET next_lvl_val = NULL;
 SET delta_lvl_val = NULL;
 SET expected_sign = NULL;
 
 SELECT first_lvl_id
-INTO prev_lvl_id
+INTO f_lvl_id
 FROM report
 WHERE id = p_report_id;
-
-CALL get_lvl_data(prev_lvl_id, prev_lvl_val, current_lvl_id);
+SET current_lvl_id = f_lvl_id;
 
 bad_lvl_loop: LOOP
-IF current_lvl_id IS NULL THEN
+CALL get_lvl_next_id(current_lvl_id, next_lvl_id);
+
+IF next_lvl_id IS NULL THEN
     LEAVE bad_lvl_loop;
 END IF;
 
-CALL get_lvl_data(current_lvl_id, current_lvl_val, next_lvl_id);
-SET delta_lvl_val = current_lvl_val - prev_lvl_val;
+CALL get_lvl_val(current_lvl_id, current_lvl_val);
+CALL get_lvl_val(next_lvl_id, next_lvl_val);
+SET delta_lvl_val = next_lvl_val - current_lvl_val;
 
 IF is_delta_safe(delta_lvl_val, expected_sign) THEN
     SET prev_lvl_id = current_lvl_id;
-    SET prev_lvl_val = current_lvl_val;
+    SET current_lvl_id = next_lvl_id;
 
     IF expected_sign IS NULL THEN
         SET expected_sign = sign(delta_lvl_val);
     END IF;
 ELSE # Delete the bad level.
-    CALL set_next_lvl_id(prev_lvl_id, next_lvl_id);
     CALL del_lvl(current_lvl_id);
     SET nb_bad_lvls = nb_bad_lvls + 1;
-END IF;
 
-SET current_lvl_id = next_lvl_id;
+    IF prev_lvl_id IS NULL THEN
+        # The current level is the first in the chain.
+        SET current_lvl_id = next_lvl_id;
+    ELSE
+        CALL set_next_lvl_id(prev_lvl_id, next_lvl_id);
+        SET current_lvl_id = prev_lvl_id;
+    END IF;
+END IF;
 END LOOP;
 
 UPDATE report
@@ -372,10 +396,15 @@ FIELDS TERMINATED BY " "
 (lvl0, lvl1, lvl2, lvl3, lvl4, lvl5, lvl6, lvl7);
 
 CALL make_all_reports();
-CALL remove_all_bad_levels();
 
 SELECT *
 FROM report;
+
+SELECT *
+FROM lvl;
+
+#/*
+CALL remove_all_bad_levels();
 
 SELECT *
 FROM lvl_chain;
@@ -393,5 +422,6 @@ FROM report
 WHERE nb_bad_levels <= 1;
 
 SELECT @puzzle1_answer, @puzzle2_answer;
+#*/
 
 DROP DATABASE IF EXISTS day2;
