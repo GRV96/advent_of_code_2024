@@ -225,12 +225,13 @@ END$$
 
 CREATE PROCEDURE del_lvl(IN p_lvl_id INT)
 BEGIN
-# Normally, the referencing record must be deleted before the referenced record.
-SET FOREIGN_KEY_CHECKS=0;
+UPDATE lvl
+SET next_lvl_id = NULL
+WHERE id = p_lvl_id;
+
 DELETE
 FROM lvl
 WHERE id = p_lvl_id;
-SET FOREIGN_KEY_CHECKS=1;
 END$$
 
 CREATE FUNCTION is_delta_safe(p_delta INT, p_expected_sign INT) RETURNS INT
