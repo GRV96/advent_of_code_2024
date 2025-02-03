@@ -438,6 +438,7 @@ ELSE # Delete the bad level.
         SET current_lvl_id = next_lvl_id;
         SET f_lvl_id = current_lvl_id;
         SET prev_lvl_id = NULL;
+        CALL set_report_first_lvl(p_report_id, f_lvl_id);
     ELSE
         SET current_lvl_id = prev_lvl_id;
         CALL get_prev_lvl_id(current_lvl_id, prev_lvl_id);
@@ -450,7 +451,7 @@ INSERT INTO bad_level_steps (report_id, lvl_chain) VALUES
 END LOOP;
 
 UPDATE report
-SET first_lvl_id = f_lvl_id, nb_bad_levels = nb_bad_lvls
+SET nb_bad_levels = nb_bad_lvls
 WHERE id = p_report_id;
 
 INSERT INTO report_lvl_chain (id, lvl_chain) VALUES
