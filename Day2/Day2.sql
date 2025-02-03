@@ -17,7 +17,9 @@ TRUNCATE input;
 CREATE TABLE IF NOT EXISTS lvl (
     id INT PRIMARY KEY UNIQUE AUTO_INCREMENT,
     val INT,
+    prev_lvl_id INT,
     next_lvl_id INT,
+FOREIGN KEY (prev_lvl_id) REFERENCES lvl(id),
 FOREIGN KEY (next_lvl_id) REFERENCES lvl(id)
 );
 TRUNCATE lvl;
@@ -61,6 +63,14 @@ LIMIT 1;
 RETURN last_id;
 END$$
 
+CREATE PROCEDURE set_prev_lvl_id(IN p_lvl_id INT, IN p_prev_lvl_id INT)
+DETERMINISTIC
+BEGIN
+UPDATE lvl
+SET prev_lvl_id = p_prev_lvl_id
+WHERE id = p_lvl_id;
+END$$
+
 CREATE PROCEDURE set_next_lvl_id(IN p_lvl_id INT, IN p_next_lvl_id INT)
 DETERMINISTIC
 BEGIN
@@ -71,8 +81,8 @@ END$$
 
 CREATE PROCEDURE make_lvl(IN lvl_val INT, IN p_prev_lvl_id INT, OUT p_lvl_id INT)
 BEGIN
-INSERT INTO lvl (val) VALUES
-(lvl_val);
+INSERT INTO lvl (val, prev_lvl_id) VALUES
+(lvl_val, p_prev_lvl_id);
 SET p_lvl_id = get_last_lvl_id();
 
 IF p_prev_lvl_id IS NOT NULL THEN
@@ -230,6 +240,13 @@ END LOOP;
 CLOSE in_id_cur;
 END$$
 
+CREATE PROCEDURE set_report_first_lvl(IN p_report_id INT, IN p_first_lvl_id INT)
+BEGIN
+UPDATE report
+SET first_lvl_id = p_first_lvl_id
+WHERE id = p_report_id;
+END$$
+
 CREATE PROCEDURE get_lvl_data(IN p_lvl_id INT, OUT p_lvl_val INT, OUT p_next_lvl_id INT)
 BEGIN
 SELECT val, next_lvl_id
@@ -246,7 +263,15 @@ FROM lvl
 WHERE id = p_lvl_id;
 END$$
 
-CREATE PROCEDURE get_lvl_next_id(IN p_lvl_id INT, OUT p_next_lvl_id INT)
+CREATE PROCEDURE get_prev_lvl_id(IN p_lvl_id INT, OUT p_prev_lvl_id INT)
+BEGIN
+SELECT prev_lvl_id
+INTO p_prev_lvl_id
+FROM lvl
+WHERE id = p_lvl_id;
+END$$
+
+CREATE PROCEDURE get_next_lvl_id(IN p_lvl_id INT, OUT p_next_lvl_id INT)
 BEGIN
 SELECT next_lvl_id
 INTO p_next_lvl_id
@@ -254,14 +279,41 @@ FROM lvl
 WHERE id = p_lvl_id;
 END$$
 
+CREATE FUNCTION get_report_with_first_lvl(p_first_lvl_id INT) RETURNS INT
+READS SQL DATA
+BEGIN
+DECLARE rep_id INT;
+
+SELECT id
+INTO rep_id
+FROM report
+WHERE first_lvl_id = p_first_lvl_id;
+
+RETURN rep_id;
+END$$
+
 CREATE PROCEDURE del_lvl(IN p_lvl_id INT)
 BEGIN
+DECLARE prev_lvl_id INT;
+DECLARE next_lvl_id INT;
+SET prev_lvl_id = NULL;
+SET next_lvl_id = NULL;
+
+CALL get_prev_lvl_id(p_lvl_id, prev_lvl_id);
+CALL get_next_lvl_id(p_lvl_id, next_lvl_id);
+
+CALL set_next_lvl_id(prev_lvl_id, next_lvl_id);
+CALL set_prev_lvl_id(next_lvl_id, prev_lvl_id);
+
 # To prevent error 1451
-SET FOREIGN_KEY_CHECKS = 0;
+UPDATE lvl
+SET prev_lvl_id = NULL, next_lvl_id = NULL
+WHERE id = p_lvl_id;
+CALL set_report_first_lvl(get_report_with_first_lvl(p_lvl_id), NULL);
+
 DELETE
 FROM lvl
 WHERE id = p_lvl_id;
-SET FOREIGN_KEY_CHECKS = 1;
 END$$
 
 CREATE FUNCTION is_delta_safe(p_delta INT, p_expected_sign INT) RETURNS INT
@@ -336,7 +388,7 @@ WHERE id = p_report_id;
 SET current_lvl_id = f_lvl_id;
 
 bad_lvl_loop: LOOP
-CALL get_lvl_next_id(current_lvl_id, next_lvl_id);
+CALL get_next_lvl_id(current_lvl_id, next_lvl_id);
 
 IF next_lvl_id IS NULL THEN
     LEAVE bad_lvl_loop;
@@ -360,9 +412,10 @@ ELSE # Delete the bad level.
     IF current_lvl_id = f_lvl_id THEN
         SET current_lvl_id = next_lvl_id;
         SET f_lvl_id = current_lvl_id;
+        SET prev_lvl_id = NULL;
     ELSE
-        CALL set_next_lvl_id(prev_lvl_id, next_lvl_id);
         SET current_lvl_id = prev_lvl_id;
+        CALL get_prev_lvl_id(current_lvl_id, prev_lvl_id);
     END IF;
 END IF;
 END LOOP;
