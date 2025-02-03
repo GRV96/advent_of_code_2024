@@ -350,6 +350,7 @@ ELSE # Delete the bad level.
 
     IF current_lvl_id = f_lvl_id THEN
         SET current_lvl_id = next_lvl_id;
+        SET f_lvl_id = current_lvl_id;
     ELSE
         CALL set_next_lvl_id(prev_lvl_id, next_lvl_id);
         SET current_lvl_id = prev_lvl_id;
@@ -358,7 +359,7 @@ END IF;
 END LOOP;
 
 UPDATE report
-SET nb_bad_levels = nb_bad_lvls
+SET first_lvl_id = f_lvl_id, nb_bad_levels = nb_bad_lvls
 WHERE id = p_report_id;
 
 CALL make_lvl_chain(p_report_id);
