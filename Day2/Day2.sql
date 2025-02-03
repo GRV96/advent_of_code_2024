@@ -48,6 +48,15 @@ SELECT *
 FROM lvl;
 END$$
 
+CREATE PROCEDURE display_unsafe_reports(IN p_safety_limit INT)
+BEGIN
+SELECT r.id, r.nb_bad_levels, c.as_text
+FROM report r
+JOIN lvl_chain c
+ON r.id = c.id
+WHERE nb_bad_levels > p_safety_limit;
+END$$
+
 CREATE FUNCTION get_last_lvl_id() RETURNS INT
 NOT DETERMINISTIC
 READS SQL DATA
@@ -463,8 +472,7 @@ CALL display_reports_and_levels();
 CALL remove_all_bad_levels();
 CALL display_reports_and_levels();
 
-SELECT *
-FROM lvl_chain;
+CALL display_unsafe_reports(1);
 
 SET @puzzle1_answer = -1;
 SELECT COUNT(*)
