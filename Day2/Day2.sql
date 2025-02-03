@@ -24,11 +24,11 @@ FOREIGN KEY (next_lvl_id) REFERENCES lvl(id)
 );
 TRUNCATE lvl;
 
-CREATE TABLE IF NOT EXISTS lvl_chain (
+CREATE TABLE IF NOT EXISTS report_lvl_chain (
     id INT PRIMARY KEY UNIQUE AUTO_INCREMENT,
-    as_text VARCHAR(100)
+    lvl_chain VARCHAR(100)
 );
-TRUNCATE lvl_chain;
+TRUNCATE report_lvl_chain;
 
 CREATE TABLE IF NOT EXISTS report (
     id INT PRIMARY KEY UNIQUE AUTO_INCREMENT,
@@ -37,6 +37,13 @@ CREATE TABLE IF NOT EXISTS report (
 FOREIGN KEY (first_lvl_id) REFERENCES lvl(id)
 );
 TRUNCATE report;
+
+CREATE TABLE IF NOT EXISTS bad_level_steps (
+    id INT PRIMARY KEY UNIQUE AUTO_INCREMENT,
+    report_id INT,
+    lvl_chain VARCHAR(100),
+FOREIGN KEY (report_id) REFERENCES report(id)
+);
 
 DELIMITER $$
 CREATE PROCEDURE display_reports_and_levels()
@@ -48,11 +55,18 @@ SELECT *
 FROM lvl;
 END$$
 
+CREATE PROCEDURE display_bad_level_steps(IN p_report_id INT)
+BEGIN
+SELECT *
+FROM bad_level_steps
+WHERE report_id = p_report_id;
+END$$
+
 CREATE PROCEDURE display_unsafe_reports(IN p_safety_limit INT)
 BEGIN
-SELECT r.id, r.nb_bad_levels, c.as_text
+SELECT r.id, r.nb_bad_levels, c.lvl_chain
 FROM report r
-JOIN lvl_chain c
+JOIN report_lvl_chain c
 ON r.id = c.id
 WHERE nb_bad_levels > p_safety_limit;
 END$$
@@ -339,15 +353,16 @@ SET is_sign_correct = p_expected_sign IS NULL OR SIGN(p_delta) = p_expected_sign
 RETURN is_value_safe AND is_sign_correct;
 END$$
 
-CREATE PROCEDURE make_lvl_chain(IN p_report_id INT)
+CREATE FUNCTION make_lvl_chain_text(p_report_id INT) RETURNS VARCHAR(100)
+READS SQL DATA
 BEGIN
 DECLARE current_lvl_id INT;
 DECLARE current_lvl_val INT;
 DECLARE next_lvl_id INT;
-DECLARE chain_as_text VARCHAR(100);
+DECLARE lvl_chain VARCHAR(100);
 SET current_lvl_val = NULL;
 SET next_lvl_id = NULL;
-SET chain_as_text = "";
+SET lvl_chain = "";
 
 SELECT first_lvl_id
 INTO current_lvl_id
@@ -356,7 +371,7 @@ WHERE id = p_report_id;
 
 lvl_chain_loop: LOOP
 CALL get_lvl_data(current_lvl_id, current_lvl_val, next_lvl_id);
-SET chain_as_text = CONCAT(chain_as_text, " [", current_lvl_id, ": ", current_lvl_val, "]");
+SET lvl_chain = CONCAT(lvl_chain, " [", current_lvl_id, ": ", current_lvl_val, "]");
 
 IF next_lvl_id IS NULL THEN
     LEAVE lvl_chain_loop;
@@ -365,8 +380,7 @@ END IF;
 SET current_lvl_id = next_lvl_id;
 END LOOP;
 
-INSERT INTO lvl_chain VALUES
-(p_report_id, chain_as_text);
+RETURN lvl_chain;
 END$$
 
 CREATE PROCEDURE remove_bad_levels(IN p_report_id INT)
@@ -380,6 +394,7 @@ DECLARE next_lvl_id INT;
 DECLARE next_lvl_val INT;
 DECLARE delta_lvl_val INT;
 DECLARE expected_sign INT;
+DECLARE lvl_chain VARCHAR(100);
 SET nb_bad_lvls = 0;
 SET f_lvl_id = NULL;
 SET prev_lvl_id = NULL;
@@ -389,6 +404,7 @@ SET next_lvl_id = NULL;
 SET next_lvl_val = NULL;
 SET delta_lvl_val = NULL;
 SET expected_sign = NULL;
+SET lvl_chain = NULL;
 
 SELECT first_lvl_id
 INTO f_lvl_id
@@ -427,13 +443,18 @@ ELSE # Delete the bad level.
         CALL get_prev_lvl_id(current_lvl_id, prev_lvl_id);
     END IF;
 END IF;
+
+SET lvl_chain = make_lvl_chain_text(p_report_id);
+INSERT INTO bad_level_steps (report_id, lvl_chain) VALUES
+(p_report_id, lvl_chain);
 END LOOP;
 
 UPDATE report
 SET first_lvl_id = f_lvl_id, nb_bad_levels = nb_bad_lvls
 WHERE id = p_report_id;
 
-CALL make_lvl_chain(p_report_id);
+INSERT INTO report_lvl_chain (id, lvl_chain) VALUES
+(p_report_id, lvl_chain);
 END$$
 
 CREATE PROCEDURE remove_all_bad_levels()
@@ -472,6 +493,7 @@ CALL display_reports_and_levels();
 CALL remove_all_bad_levels();
 CALL display_reports_and_levels();
 
+CALL display_bad_level_steps(623);
 CALL display_unsafe_reports(1);
 
 SET @puzzle1_answer = -1;
