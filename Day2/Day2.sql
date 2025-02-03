@@ -348,8 +348,7 @@ ELSE # Delete the bad level.
     CALL del_lvl(current_lvl_id);
     SET nb_bad_lvls = nb_bad_lvls + 1;
 
-    IF prev_lvl_id IS NULL THEN
-        # The current level is the first in the chain.
+    IF current_lvl_id = f_lvl_id THEN
         SET current_lvl_id = next_lvl_id;
     ELSE
         CALL set_next_lvl_id(prev_lvl_id, next_lvl_id);
