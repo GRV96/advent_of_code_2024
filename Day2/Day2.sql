@@ -37,6 +37,15 @@ FOREIGN KEY (first_lvl_id) REFERENCES lvl(id)
 TRUNCATE report;
 
 DELIMITER $$
+CREATE PROCEDURE display_reports_and_levels()
+BEGIN
+SELECT *
+FROM report;
+
+SELECT *
+FROM lvl;
+END$$
+
 CREATE FUNCTION get_last_lvl_id() RETURNS INT
 NOT DETERMINISTIC
 READS SQL DATA
@@ -396,17 +405,10 @@ FIELDS TERMINATED BY " "
 (lvl0, lvl1, lvl2, lvl3, lvl4, lvl5, lvl6, lvl7);
 
 CALL make_all_reports();
-
-SELECT *
-FROM report;
-
-SELECT *
-FROM lvl;
+CALL display_reports_and_levels();
 
 CALL remove_all_bad_levels();
-
-SELECT *
-FROM lvl;
+CALL display_reports_and_levels();
 
 SELECT *
 FROM lvl_chain;
