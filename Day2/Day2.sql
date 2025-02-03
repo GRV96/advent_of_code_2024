@@ -402,8 +402,10 @@ FROM report;
 SELECT *
 FROM lvl;
 
-#/*
 CALL remove_all_bad_levels();
+
+SELECT *
+FROM lvl;
 
 SELECT *
 FROM lvl_chain;
@@ -421,6 +423,5 @@ FROM report
 WHERE nb_bad_levels <= 1;
 
 SELECT @puzzle1_answer, @puzzle2_answer;
-#*/
 
 DROP DATABASE IF EXISTS day2;
