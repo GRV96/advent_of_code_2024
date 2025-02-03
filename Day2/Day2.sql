@@ -24,7 +24,7 @@ TRUNCATE lvl;
 
 CREATE TABLE IF NOT EXISTS lvl_chain (
     id INT PRIMARY KEY UNIQUE AUTO_INCREMENT,
-    as_text VARCHAR(300)
+    as_text VARCHAR(100)
 );
 TRUNCATE lvl_chain;
 
@@ -274,7 +274,7 @@ BEGIN
 DECLARE current_lvl_id INT;
 DECLARE current_lvl_val INT;
 DECLARE next_lvl_id INT;
-DECLARE chain_as_text VARCHAR(30);
+DECLARE chain_as_text VARCHAR(100);
 SET current_lvl_val = NULL;
 SET next_lvl_id = NULL;
 SET chain_as_text = "";
@@ -286,7 +286,7 @@ WHERE id = p_report_id;
 
 lvl_chain_loop: LOOP
 CALL get_lvl_data(current_lvl_id, current_lvl_val, next_lvl_id);
-SET chain_as_text = CONCAT(chain_as_text, " ", current_lvl_val);
+SET chain_as_text = CONCAT(chain_as_text, " [", current_lvl_id, ": ", current_lvl_val, "]");
 
 IF next_lvl_id IS NULL THEN
     LEAVE lvl_chain_loop;
