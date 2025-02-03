@@ -321,10 +321,10 @@ NO SQL
 BEGIN
 DECLARE is_sign_correct INT;
 DECLARE is_value_safe INT;
-DECLARE delta_abs INT;
+DECLARE abs_delta INT;
 
-SET delta_abs = ABS(p_delta);
-SET is_value_safe = delta_abs >= 1 AND delta_abs <= 3;
+SET abs_delta = ABS(p_delta);
+SET is_value_safe = abs_delta >= 1 AND abs_delta <= 3;
 SET is_sign_correct = p_expected_sign IS NULL OR SIGN(p_delta) = p_expected_sign;
 
 RETURN is_value_safe AND is_sign_correct;
