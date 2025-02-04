@@ -454,10 +454,10 @@ SET lvl_chain = NULL;
 SET f_lvl_id = reports_get_first_lvl_id(p_report_id);
 SET current_lvl_id = f_lvl_id;
 
+bad_lvl_loop: LOOP
 SET lvl_chain = make_lvl_chain_text(p_report_id);
 CALL make_bad_level_step(p_report_id, current_lvl_id, lvl_chain);
 
-bad_lvl_loop: LOOP
 SET next_lvl_id = levels_get_next_id(current_lvl_id);
 
 IF next_lvl_id IS NULL THEN
@@ -490,8 +490,6 @@ ELSE
     END IF;
 END IF;
 
-SET lvl_chain = make_lvl_chain_text(p_report_id);
-CALL make_bad_level_step(p_report_id, current_lvl_id, lvl_chain);
 END LOOP;
 
 UPDATE reports
