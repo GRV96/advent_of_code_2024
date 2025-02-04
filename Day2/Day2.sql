@@ -199,7 +199,7 @@ END$$
 
 CREATE PROCEDURE display_unsafe_reports(IN in_safety_limit INT)
 BEGIN
-SELECT r.id, r.nb_bad_levels, c.lvl_chain
+SELECT r.id, r.nb_bad_levels, r.first_lvl_id, c.lvl_chain
 FROM reports r
 JOIN report_lvl_chains c
 ON r.id = c.id
