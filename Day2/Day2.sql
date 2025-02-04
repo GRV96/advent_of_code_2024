@@ -207,7 +207,8 @@ DELIMITER ;
 
 CREATE TABLE IF NOT EXISTS report_lvl_chains (
     id INT PRIMARY KEY UNIQUE AUTO_INCREMENT,
-    lvl_chain VARCHAR(200)
+    lvl_chain VARCHAR(200),
+FOREIGN KEY (id) REFERENCES reports(id)
 );
 
 CREATE TABLE IF NOT EXISTS bad_level_steps (
@@ -522,7 +523,7 @@ CALL display_reports_and_levels();
 CALL remove_all_bad_levels();
 CALL display_reports_and_levels();
 
-CALL display_bad_level_steps(623);
+CALL display_bad_level_steps(3);
 CALL display_unsafe_reports(1);
 
 SET @puzzle1_answer = -1;
