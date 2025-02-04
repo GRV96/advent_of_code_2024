@@ -385,7 +385,7 @@ ELSE
     SET delta = next_lvl_val - current_lvl_val;
 END IF;
 
-SET lvl_chain = CONCAT(lvl_chain, " [", current_lvl_id, ": ", current_lvl_val, " d: ", IFNULL(delta, "-"), "]");
+SET lvl_chain = CONCAT(lvl_chain, " [id: ", current_lvl_id, " v: ", current_lvl_val, " d: ", IFNULL(delta, "-"), "]");
 
 SET current_lvl_id = next_lvl_id;
 END LOOP;
