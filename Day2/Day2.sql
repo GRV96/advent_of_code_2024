@@ -488,6 +488,7 @@ ELSE
     IF current_lvl_id = f_lvl_id THEN
         SET current_lvl_id = next_lvl_id;
         SET prev_lvl_id = NULL;
+        SET expected_sign = NULL;
         SET f_lvl_id = current_lvl_id;
         CALL reports_set_first_lvl_id(p_report_id, f_lvl_id);
     ELSE
