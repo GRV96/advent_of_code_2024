@@ -123,7 +123,7 @@ CALL levels_set_prev_id(l_next_lvl_id, l_prev_lvl_id);
 UPDATE levels
 SET prev_lvl_id = NULL, next_lvl_id = NULL
 WHERE id = in_lvl_id;
-CALL set_report_first_lvl(get_report_with_first_lvl(in_lvl_id), NULL);
+CALL reports_set_first_lvl_id(get_report_with_first_lvl_id(in_lvl_id), NULL);
 
 DELETE
 FROM levels
@@ -166,7 +166,7 @@ SET lvl_chain = "";
 
 SELECT first_lvl_id
 INTO current_lvl_id
-FROM report
+FROM reports
 WHERE id = p_report_id;
 
 lvl_chain_loop: LOOP
@@ -192,7 +192,7 @@ RETURN lvl_chain;
 END$$
 DELIMITER ;
 
-CREATE TABLE IF NOT EXISTS report (
+CREATE TABLE IF NOT EXISTS reports (
     id INT PRIMARY KEY UNIQUE AUTO_INCREMENT,
     first_lvl_id INT,
     nb_bad_levels INT DEFAULT -1,
@@ -200,21 +200,21 @@ FOREIGN KEY (first_lvl_id) REFERENCES levels(id)
 );
 
 DELIMITER $$
-CREATE PROCEDURE set_report_first_lvl(IN p_report_id INT, IN p_first_lvl_id INT)
+CREATE PROCEDURE reports_set_first_lvl_id(IN p_report_id INT, IN p_first_lvl_id INT)
 BEGIN
-UPDATE report
+UPDATE reports
 SET first_lvl_id = p_first_lvl_id
 WHERE id = p_report_id;
 END$$
 
-CREATE FUNCTION get_report_with_first_lvl(p_first_lvl_id INT) RETURNS INT
+CREATE FUNCTION get_report_with_first_lvl_id(p_first_lvl_id INT) RETURNS INT
 READS SQL DATA
 BEGIN
 DECLARE rep_id INT;
 
 SELECT id
 INTO rep_id
-FROM report
+FROM reports
 WHERE first_lvl_id = p_first_lvl_id;
 
 RETURN rep_id;
@@ -223,7 +223,7 @@ END$$
 CREATE PROCEDURE display_reports_and_levels()
 BEGIN
 SELECT *
-FROM report;
+FROM reports;
 
 SELECT *
 FROM levels;
@@ -232,7 +232,7 @@ END$$
 CREATE PROCEDURE display_unsafe_reports(IN p_safety_limit INT)
 BEGIN
 SELECT r.id, r.nb_bad_levels, c.lvl_chain
-FROM report r
+FROM reports r
 JOIN report_lvl_chain c
 ON r.id = c.id
 WHERE nb_bad_levels > p_safety_limit;
@@ -243,7 +243,7 @@ CREATE TABLE IF NOT EXISTS bad_level_steps (
     id INT PRIMARY KEY UNIQUE AUTO_INCREMENT,
     report_id INT,
     lvl_chain VARCHAR(200),
-FOREIGN KEY (report_id) REFERENCES report(id)
+FOREIGN KEY (report_id) REFERENCES reports(id)
 );
 
 DELIMITER $$
@@ -379,7 +379,7 @@ IF lvl_val IS NOT NULL THEN
     END IF;
 END IF;
 
-INSERT INTO report (id, first_lvl_id) VALUES
+INSERT INTO reports (id, first_lvl_id) VALUES
 (p_input_id, first_lvl_id);
 END$$
 
@@ -431,7 +431,7 @@ SET lvl_chain = NULL;
 
 SELECT first_lvl_id
 INTO f_lvl_id
-FROM report
+FROM reports
 WHERE id = p_report_id;
 SET current_lvl_id = f_lvl_id;
 
@@ -461,7 +461,7 @@ ELSE
         SET current_lvl_id = next_lvl_id;
         SET f_lvl_id = current_lvl_id;
         SET prev_lvl_id = NULL;
-        CALL set_report_first_lvl(p_report_id, f_lvl_id);
+        CALL reports_set_first_lvl_id(p_report_id, f_lvl_id);
     ELSE
         SET current_lvl_id = prev_lvl_id;
         SET prev_lvl_id = levels_get_prev_id(current_lvl_id);
@@ -473,7 +473,7 @@ INSERT INTO bad_level_steps (report_id, lvl_chain) VALUES
 (p_report_id, lvl_chain);
 END LOOP;
 
-UPDATE report
+UPDATE reports
 SET nb_bad_levels = nb_bad_lvls
 WHERE id = p_report_id;
 
@@ -487,7 +487,7 @@ DECLARE report_id INT;
 DECLARE done INT DEFAULT FALSE;
 DECLARE report_id_cur CURSOR FOR
     SELECT id
-    FROM report
+    FROM reports
     WHERE id IS NOT NULL;
 DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
 
@@ -523,13 +523,13 @@ CALL display_unsafe_reports(1);
 SET @puzzle1_answer = -1;
 SELECT COUNT(*)
 INTO @puzzle1_answer
-FROM report
+FROM reports
 WHERE nb_bad_levels = 0;
 
 SET @puzzle2_answer = -1;
 SELECT COUNT(*)
 INTO @puzzle2_answer
-FROM report
+FROM reports
 WHERE nb_bad_levels <= 1;
 
 SELECT @puzzle1_answer, @puzzle2_answer;
