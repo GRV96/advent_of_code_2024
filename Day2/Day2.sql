@@ -26,7 +26,7 @@ TRUNCATE lvl;
 
 CREATE TABLE IF NOT EXISTS report_lvl_chain (
     id INT PRIMARY KEY UNIQUE AUTO_INCREMENT,
-    lvl_chain VARCHAR(100)
+    lvl_chain VARCHAR(200)
 );
 TRUNCATE report_lvl_chain;
 
@@ -41,7 +41,7 @@ TRUNCATE report;
 CREATE TABLE IF NOT EXISTS bad_level_steps (
     id INT PRIMARY KEY UNIQUE AUTO_INCREMENT,
     report_id INT,
-    lvl_chain VARCHAR(100),
+    lvl_chain VARCHAR(200),
 FOREIGN KEY (report_id) REFERENCES report(id)
 );
 
@@ -353,13 +353,15 @@ SET is_sign_correct = p_expected_sign IS NULL OR SIGN(p_delta) = p_expected_sign
 RETURN is_value_safe AND is_sign_correct;
 END$$
 
-CREATE FUNCTION make_lvl_chain_text(p_report_id INT) RETURNS VARCHAR(100)
+CREATE FUNCTION make_lvl_chain_text(p_report_id INT) RETURNS VARCHAR(200)
 READS SQL DATA
 BEGIN
 DECLARE current_lvl_id INT;
 DECLARE current_lvl_val INT;
 DECLARE next_lvl_id INT;
-DECLARE lvl_chain VARCHAR(100);
+DECLARE next_lvl_val INT;
+DECLARE delta INT;
+DECLARE lvl_chain VARCHAR(200);
 SET current_lvl_val = NULL;
 SET next_lvl_id = NULL;
 SET lvl_chain = "";
@@ -370,12 +372,20 @@ FROM report
 WHERE id = p_report_id;
 
 lvl_chain_loop: LOOP
-CALL get_lvl_data(current_lvl_id, current_lvl_val, next_lvl_id);
-SET lvl_chain = CONCAT(lvl_chain, " [", current_lvl_id, ": ", current_lvl_val, "]");
-
-IF next_lvl_id IS NULL THEN
+IF current_lvl_id IS NULL THEN
     LEAVE lvl_chain_loop;
 END IF;
+
+CALL get_lvl_data(current_lvl_id, current_lvl_val, next_lvl_id);
+
+IF next_lvl_id IS NULL THEN
+    SET delta = NULL;
+ELSE
+    CALL get_lvl_val(next_lvl_id, next_lvl_val);
+    SET delta = next_lvl_val - current_lvl_val;
+END IF;
+
+SET lvl_chain = CONCAT(lvl_chain, " [", current_lvl_id, ": ", current_lvl_val, " d: ", IFNULL(delta, "-"), "]");
 
 SET current_lvl_id = next_lvl_id;
 END LOOP;
@@ -394,7 +404,7 @@ DECLARE next_lvl_id INT;
 DECLARE next_lvl_val INT;
 DECLARE delta_lvl_val INT;
 DECLARE expected_sign INT;
-DECLARE lvl_chain VARCHAR(100);
+DECLARE lvl_chain VARCHAR(200);
 SET nb_bad_lvls = 0;
 SET f_lvl_id = NULL;
 SET prev_lvl_id = NULL;
