@@ -98,7 +98,7 @@ LIMIT 1;
 RETURN l_last_id;
 END$$
 
-CREATE PROCEDURE make_lvl(IN in_lvl_val INT, IN in_prev_lvl_id INT, OUT out_lvl_id INT)
+CREATE PROCEDURE make_level(IN in_lvl_val INT, IN in_prev_lvl_id INT, OUT out_lvl_id INT)
 BEGIN
 INSERT INTO levels (val, prev_lvl_id) VALUES
 (in_lvl_val, in_prev_lvl_id);
@@ -109,7 +109,7 @@ IF in_prev_lvl_id IS NOT NULL THEN
 END IF;
 END$$
 
-CREATE PROCEDURE del_lvl(IN in_lvl_id INT)
+CREATE PROCEDURE delete_level(IN in_lvl_id INT)
 BEGIN
 DECLARE l_prev_lvl_id INT;
 DECLARE l_next_lvl_id INT;
@@ -273,7 +273,7 @@ FROM input
 WHERE id = p_input_id;
 
 IF lvl_val IS NOT NULL THEN
-    CALL make_lvl(lvl_val, prev_lvl_id, current_lvl_id);
+    CALL make_level(lvl_val, prev_lvl_id, current_lvl_id);
     SET prev_lvl_id = current_lvl_id;
 
     IF first_lvl_id IS NULL THEN
@@ -287,7 +287,7 @@ FROM input
 WHERE id = p_input_id;
 
 IF lvl_val IS NOT NULL THEN
-    CALL make_lvl(lvl_val, prev_lvl_id, current_lvl_id);
+    CALL make_level(lvl_val, prev_lvl_id, current_lvl_id);
     SET prev_lvl_id = current_lvl_id;
 
     IF first_lvl_id IS NULL THEN
@@ -301,7 +301,7 @@ FROM input
 WHERE id = p_input_id;
 
 IF lvl_val IS NOT NULL THEN
-    CALL make_lvl(lvl_val, prev_lvl_id, current_lvl_id);
+    CALL make_level(lvl_val, prev_lvl_id, current_lvl_id);
     SET prev_lvl_id = current_lvl_id;
 
     IF first_lvl_id IS NULL THEN
@@ -315,7 +315,7 @@ FROM input
 WHERE id = p_input_id;
 
 IF lvl_val IS NOT NULL THEN
-    CALL make_lvl(lvl_val, prev_lvl_id, current_lvl_id);
+    CALL make_level(lvl_val, prev_lvl_id, current_lvl_id);
     SET prev_lvl_id = current_lvl_id;
 
     IF first_lvl_id IS NULL THEN
@@ -329,7 +329,7 @@ FROM input
 WHERE id = p_input_id;
 
 IF lvl_val IS NOT NULL THEN
-    CALL make_lvl(lvl_val, prev_lvl_id, current_lvl_id);
+    CALL make_level(lvl_val, prev_lvl_id, current_lvl_id);
     SET prev_lvl_id = current_lvl_id;
 
     IF first_lvl_id IS NULL THEN
@@ -343,7 +343,7 @@ FROM input
 WHERE id = p_input_id;
 
 IF lvl_val IS NOT NULL THEN
-    CALL make_lvl(lvl_val, prev_lvl_id, current_lvl_id);
+    CALL make_level(lvl_val, prev_lvl_id, current_lvl_id);
     SET prev_lvl_id = current_lvl_id;
 
     IF first_lvl_id IS NULL THEN
@@ -357,7 +357,7 @@ FROM input
 WHERE id = p_input_id;
 
 IF lvl_val IS NOT NULL THEN
-    CALL make_lvl(lvl_val, prev_lvl_id, current_lvl_id);
+    CALL make_level(lvl_val, prev_lvl_id, current_lvl_id);
     SET prev_lvl_id = current_lvl_id;
 
     IF first_lvl_id IS NULL THEN
@@ -371,7 +371,7 @@ FROM input
 WHERE id = p_input_id;
 
 IF lvl_val IS NOT NULL THEN
-    CALL make_lvl(lvl_val, prev_lvl_id, current_lvl_id);
+    CALL make_level(lvl_val, prev_lvl_id, current_lvl_id);
     SET prev_lvl_id = current_lvl_id;
 
     IF first_lvl_id IS NULL THEN
@@ -453,8 +453,8 @@ IF is_delta_safe(delta_lvl_val, expected_sign) THEN
     IF expected_sign IS NULL THEN
         SET expected_sign = sign(delta_lvl_val);
     END IF;
-ELSE # Delete the bad level.
-    CALL del_lvl(current_lvl_id);
+ELSE
+    CALL delete_level(current_lvl_id);
     SET nb_bad_lvls = nb_bad_lvls + 1;
 
     IF current_lvl_id = f_lvl_id THEN
