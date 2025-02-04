@@ -176,14 +176,14 @@ END$$
 CREATE FUNCTION get_report_with_first_lvl_id(p_first_lvl_id INT) RETURNS INT
 READS SQL DATA
 BEGIN
-DECLARE rep_id INT;
+DECLARE l_rep_id INT;
 
 SELECT id
-INTO rep_id
+INTO l_rep_id
 FROM reports
 WHERE first_lvl_id = p_first_lvl_id;
 
-RETURN rep_id;
+RETURN l_rep_id;
 END$$
 
 CREATE PROCEDURE display_reports_and_levels()
@@ -222,45 +222,45 @@ DELIMITER $$
 CREATE FUNCTION make_lvl_chain_text(p_report_id INT) RETURNS VARCHAR(200)
 READS SQL DATA
 BEGIN
-DECLARE current_lvl_id INT;
-DECLARE current_lvl_val INT;
-DECLARE next_lvl_id INT;
-DECLARE next_lvl_val INT;
-DECLARE delta INT;
-DECLARE lvl_chain VARCHAR(200);
-SET current_lvl_val = NULL;
-SET next_lvl_id = NULL;
-SET lvl_chain = "";
+DECLARE l_current_lvl_id INT;
+DECLARE l_current_lvl_val INT;
+DECLARE l_next_lvl_id INT;
+DECLARE l_next_lvl_val INT;
+DECLARE l_delta INT;
+DECLARE l_lvl_chain VARCHAR(200);
+SET l_current_lvl_val = NULL;
+SET l_next_lvl_id = NULL;
+SET l_lvl_chain = "";
 
-SET current_lvl_id = reports_get_first_lvl_id(p_report_id);
+SET l_current_lvl_id = reports_get_first_lvl_id(p_report_id);
 
 lvl_chain_loop: LOOP
-IF current_lvl_id IS NULL THEN
+IF l_current_lvl_id IS NULL THEN
     LEAVE lvl_chain_loop;
 END IF;
 
-CALL get_lvl_data(current_lvl_id, current_lvl_val, next_lvl_id);
+CALL get_lvl_data(l_current_lvl_id, l_current_lvl_val, l_next_lvl_id);
 
-IF next_lvl_id IS NULL THEN
-    SET delta = NULL;
+IF l_next_lvl_id IS NULL THEN
+    SET l_delta = NULL;
 ELSE
-    SET next_lvl_val = levels_get_val(next_lvl_id);
-    SET delta = next_lvl_val - current_lvl_val;
+    SET l_next_lvl_val = levels_get_val(l_next_lvl_id);
+    SET l_delta = l_next_lvl_val - l_current_lvl_val;
 END IF;
 
-SET lvl_chain = CONCAT(lvl_chain, " [id: ", current_lvl_id, " v: ", current_lvl_val, " d: ", IFNULL(delta, "-"), "]");
+SET l_lvl_chain = CONCAT(l_lvl_chain, " [id: ", l_current_lvl_id, " v: ", l_current_lvl_val, " d: ", IFNULL(l_delta, "-"), "]");
 
-SET current_lvl_id = next_lvl_id;
+SET l_current_lvl_id = l_next_lvl_id;
 END LOOP;
 
-RETURN lvl_chain;
+RETURN l_lvl_chain;
 END$$
 
-CREATE PROCEDURE display_bad_level_steps(IN p_report_id INT)
+CREATE PROCEDURE display_bad_level_steps(IN in_report_id INT)
 BEGIN
 SELECT *
 FROM bad_level_steps
-WHERE report_id = p_report_id;
+WHERE report_id = in_report_id;
 END$$
 DELIMITER ;
 
