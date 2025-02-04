@@ -164,10 +164,7 @@ SET current_lvl_val = NULL;
 SET next_lvl_id = NULL;
 SET lvl_chain = "";
 
-SELECT first_lvl_id
-INTO current_lvl_id
-FROM reports
-WHERE id = p_report_id;
+SET current_lvl_id = reports_get_first_lvl_id(p_report_id);
 
 lvl_chain_loop: LOOP
 IF current_lvl_id IS NULL THEN
@@ -200,11 +197,24 @@ FOREIGN KEY (first_lvl_id) REFERENCES levels(id)
 );
 
 DELIMITER $$
-CREATE PROCEDURE reports_set_first_lvl_id(IN p_report_id INT, IN p_first_lvl_id INT)
+CREATE FUNCTION reports_get_first_lvl_id(p_report_id INT) RETURNS INT
+READS SQL DATA
+BEGIN
+DECLARE l_first_lvl_id INT;
+
+SELECT first_lvl_id
+INTO l_first_lvl_id
+FROM reports
+WHERE id = p_report_id;
+
+RETURN l_first_lvl_id;
+END$$
+
+CREATE PROCEDURE reports_set_first_lvl_id(IN in_report_id INT, IN in_first_lvl_id INT)
 BEGIN
 UPDATE reports
-SET first_lvl_id = p_first_lvl_id
-WHERE id = p_report_id;
+SET first_lvl_id = in_first_lvl_id
+WHERE id = in_report_id;
 END$$
 
 CREATE FUNCTION get_report_with_first_lvl_id(p_first_lvl_id INT) RETURNS INT
@@ -229,13 +239,13 @@ SELECT *
 FROM levels;
 END$$
 
-CREATE PROCEDURE display_unsafe_reports(IN p_safety_limit INT)
+CREATE PROCEDURE display_unsafe_reports(IN in_safety_limit INT)
 BEGIN
 SELECT r.id, r.nb_bad_levels, c.lvl_chain
 FROM reports r
 JOIN report_lvl_chain c
 ON r.id = c.id
-WHERE nb_bad_levels > p_safety_limit;
+WHERE nb_bad_levels > in_safety_limit;
 END$$
 DELIMITER ;
 
@@ -429,10 +439,7 @@ SET delta_lvl_val = NULL;
 SET expected_sign = NULL;
 SET lvl_chain = NULL;
 
-SELECT first_lvl_id
-INTO f_lvl_id
-FROM reports
-WHERE id = p_report_id;
+SET f_lvl_id = reports_get_first_lvl_id(p_report_id);
 SET current_lvl_id = f_lvl_id;
 
 bad_lvl_loop: LOOP
