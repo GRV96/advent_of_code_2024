@@ -139,7 +139,9 @@ DECLARE l_abs_delta INT;
 
 SET l_abs_delta = ABS(in_delta);
 SET l_is_value_safe = l_abs_delta >= 1 AND l_abs_delta <= 3;
-SET l_is_sign_correct = in_expected_sign IS NULL OR SIGN(in_delta) = in_expected_sign;
+SET l_is_sign_correct =
+    in_expected_sign IS NULL
+    OR SIGN(in_delta) = in_expected_sign;
 
 RETURN l_is_value_safe AND l_is_sign_correct;
 END$$
@@ -215,6 +217,7 @@ CREATE TABLE IF NOT EXISTS bad_level_steps (
     id INT PRIMARY KEY UNIQUE AUTO_INCREMENT,
     report_id INT,
     current_lvl_id INT,
+    expected_sign INT,
     lvl_chain VARCHAR(200),
 FOREIGN KEY (report_id) REFERENCES reports(id)
 );
@@ -263,10 +266,12 @@ END$$
 CREATE PROCEDURE make_bad_level_step(
     IN in_report_id INT,
     IN in_current_lvl_id INT,
+    IN in_expected_sign INT,
     IN in_lvl_chain VARCHAR(200))
 BEGIN
-INSERT INTO bad_level_steps (report_id, current_lvl_id, lvl_chain) VALUES
-(in_report_id, in_current_lvl_id, in_lvl_chain);
+INSERT INTO bad_level_steps
+    (report_id, current_lvl_id, expected_sign, lvl_chain) VALUES
+(in_report_id, in_current_lvl_id, in_expected_sign, in_lvl_chain);
 END $$
 
 CREATE PROCEDURE display_bad_level_steps(IN in_report_id INT)
@@ -456,7 +461,8 @@ SET current_lvl_id = f_lvl_id;
 
 bad_lvl_loop: LOOP
 SET lvl_chain = make_lvl_chain_text(p_report_id);
-CALL make_bad_level_step(p_report_id, current_lvl_id, lvl_chain);
+CALL make_bad_level_step(
+    p_report_id, current_lvl_id, expected_sign, lvl_chain);
 
 SET next_lvl_id = levels_get_next_id(current_lvl_id);
 
@@ -481,15 +487,14 @@ ELSE
 
     IF current_lvl_id = f_lvl_id THEN
         SET current_lvl_id = next_lvl_id;
-        SET f_lvl_id = current_lvl_id;
         SET prev_lvl_id = NULL;
+        SET f_lvl_id = current_lvl_id;
         CALL reports_set_first_lvl_id(p_report_id, f_lvl_id);
     ELSE
         SET current_lvl_id = prev_lvl_id;
         SET prev_lvl_id = levels_get_prev_id(current_lvl_id);
     END IF;
 END IF;
-
 END LOOP;
 
 UPDATE reports
@@ -525,18 +530,18 @@ END$$
 DELIMITER ;
 
 -- Absolute path required
-LOAD DATA LOCAL INFILE "Day2Sample.txt"
+LOAD DATA LOCAL INFILE "Day2Puzzle.txt"
 INTO TABLE input
 FIELDS TERMINATED BY " "
 (lvl0, lvl1, lvl2, lvl3, lvl4, lvl5, lvl6, lvl7);
 
 CALL make_all_reports();
-CALL display_reports_and_levels();
+#CALL display_reports_and_levels();
 
 CALL remove_all_bad_levels();
-CALL display_reports_and_levels();
+#CALL display_reports_and_levels();
 
-CALL display_bad_level_steps(3);
+CALL display_bad_level_steps(623);
 CALL display_unsafe_reports(1);
 
 SET @puzzle1_answer = -1;
