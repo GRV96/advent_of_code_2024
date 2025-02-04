@@ -31,20 +31,30 @@ FROM lvl
 WHERE id = p_lvl_id;
 END$$
 
-CREATE PROCEDURE get_lvl_val(IN p_lvl_id INT, OUT p_lvl_val INT)
+CREATE FUNCTION get_lvl_val(p_lvl_id INT) RETURNS INT
+READS SQL DATA
 BEGIN
+DECLARE lvl_val INT;
+
 SELECT val
-INTO p_lvl_val
+INTO lvl_val
 FROM lvl
 WHERE id = p_lvl_id;
+
+RETURN lvl_val;
 END$$
 
-CREATE PROCEDURE get_prev_lvl_id(IN p_lvl_id INT, OUT p_prev_lvl_id INT)
+CREATE FUNCTION get_prev_lvl_id(p_lvl_id INT) RETURNS INT
+READS SQL DATA
 BEGIN
+DECLARE l_prev_lvl_id INT;
+
 SELECT prev_lvl_id
-INTO p_prev_lvl_id
+INTO l_prev_lvl_id
 FROM lvl
 WHERE id = p_lvl_id;
+
+RETURN l_prev_lvl_id;
 END$$
 
 CREATE PROCEDURE set_prev_lvl_id(IN p_lvl_id INT, IN p_prev_lvl_id INT)
@@ -55,12 +65,17 @@ SET prev_lvl_id = p_prev_lvl_id
 WHERE id = p_lvl_id;
 END$$
 
-CREATE PROCEDURE get_next_lvl_id(IN p_lvl_id INT, OUT p_next_lvl_id INT)
+CREATE FUNCTION get_next_lvl_id(p_lvl_id INT) RETURNS INT
+READS SQL DATA
 BEGIN
+DECLARE l_next_lvl_id INT;
+
 SELECT next_lvl_id
-INTO p_next_lvl_id
+INTO l_next_lvl_id
 FROM lvl
 WHERE id = p_lvl_id;
+
+RETURN l_next_lvl_id;
 END$$
 
 CREATE PROCEDURE set_next_lvl_id(IN p_lvl_id INT, IN p_next_lvl_id INT)
@@ -104,8 +119,8 @@ DECLARE next_lvl_id INT;
 SET prev_lvl_id = NULL;
 SET next_lvl_id = NULL;
 
-CALL get_prev_lvl_id(p_lvl_id, prev_lvl_id);
-CALL get_next_lvl_id(p_lvl_id, next_lvl_id);
+SET prev_lvl_id = get_prev_lvl_id(p_lvl_id);
+SET next_lvl_id = get_next_lvl_id(p_lvl_id);
 
 CALL set_next_lvl_id(prev_lvl_id, next_lvl_id);
 CALL set_prev_lvl_id(next_lvl_id, prev_lvl_id);
@@ -170,7 +185,7 @@ CALL get_lvl_data(current_lvl_id, current_lvl_val, next_lvl_id);
 IF next_lvl_id IS NULL THEN
     SET delta = NULL;
 ELSE
-    CALL get_lvl_val(next_lvl_id, next_lvl_val);
+    SET next_lvl_val = get_lvl_val(next_lvl_id);
     SET delta = next_lvl_val - current_lvl_val;
 END IF;
 
@@ -427,14 +442,14 @@ WHERE id = p_report_id;
 SET current_lvl_id = f_lvl_id;
 
 bad_lvl_loop: LOOP
-CALL get_next_lvl_id(current_lvl_id, next_lvl_id);
+SET next_lvl_id = get_next_lvl_id(current_lvl_id);
 
 IF next_lvl_id IS NULL THEN
     LEAVE bad_lvl_loop;
 END IF;
 
-CALL get_lvl_val(current_lvl_id, current_lvl_val);
-CALL get_lvl_val(next_lvl_id, next_lvl_val);
+SET current_lvl_val = get_lvl_val(current_lvl_id);
+SET next_lvl_val = get_lvl_val(next_lvl_id);
 SET delta_lvl_val = next_lvl_val - current_lvl_val;
 
 IF is_delta_safe(delta_lvl_val, expected_sign) THEN
@@ -455,7 +470,7 @@ ELSE # Delete the bad level.
         CALL set_report_first_lvl(p_report_id, f_lvl_id);
     ELSE
         SET current_lvl_id = prev_lvl_id;
-        CALL get_prev_lvl_id(current_lvl_id, prev_lvl_id);
+        SET prev_lvl_id = get_prev_lvl_id(current_lvl_id);
     END IF;
 END IF;
 
