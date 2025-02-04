@@ -460,6 +460,10 @@ SET f_lvl_id = reports_get_first_lvl_id(p_report_id);
 SET current_lvl_id = f_lvl_id;
 
 bad_lvl_loop: LOOP
+IF current_lvl_id = f_lvl_id THEN
+    SET expected_sign = NULL;
+END IF;
+
 SET lvl_chain = make_lvl_chain_text(p_report_id);
 CALL make_bad_level_step(
     p_report_id, current_lvl_id, expected_sign, lvl_chain);
@@ -488,7 +492,6 @@ ELSE
     IF current_lvl_id = f_lvl_id THEN
         SET current_lvl_id = next_lvl_id;
         SET prev_lvl_id = NULL;
-        SET expected_sign = NULL;
         SET f_lvl_id = current_lvl_id;
         CALL reports_set_first_lvl_id(p_report_id, f_lvl_id);
     ELSE
@@ -542,7 +545,7 @@ CALL make_all_reports();
 CALL remove_all_bad_levels();
 #CALL display_reports_and_levels();
 
-CALL display_bad_level_steps(623);
+CALL display_bad_level_steps(631);
 CALL display_unsafe_reports(1);
 
 SET @puzzle1_answer = -1;
