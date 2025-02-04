@@ -228,11 +228,10 @@ DECLARE l_next_lvl_id INT;
 DECLARE l_next_lvl_val INT;
 DECLARE l_delta INT;
 DECLARE l_lvl_chain VARCHAR(200);
+SET l_current_lvl_id = reports_get_first_lvl_id(p_report_id);
 SET l_current_lvl_val = NULL;
 SET l_next_lvl_id = NULL;
-SET l_lvl_chain = "";
-
-SET l_current_lvl_id = reports_get_first_lvl_id(p_report_id);
+SET l_lvl_chain = CONCAT("first_lvl: ", l_current_lvl_id);
 
 lvl_chain_loop: LOOP
 IF l_current_lvl_id IS NULL THEN
