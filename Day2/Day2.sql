@@ -214,6 +214,7 @@ FOREIGN KEY (id) REFERENCES reports(id)
 CREATE TABLE IF NOT EXISTS bad_level_steps (
     id INT PRIMARY KEY UNIQUE AUTO_INCREMENT,
     report_id INT,
+    current_lvl_id INT,
     lvl_chain VARCHAR(200),
 FOREIGN KEY (report_id) REFERENCES reports(id)
 );
@@ -247,13 +248,26 @@ ELSE
     SET l_delta = l_next_lvl_val - l_current_lvl_val;
 END IF;
 
-SET l_lvl_chain = CONCAT(l_lvl_chain, " [id: ", l_current_lvl_id, " v: ", l_current_lvl_val, " d: ", IFNULL(l_delta, "-"), "]");
+SET l_lvl_chain = CONCAT(
+    l_lvl_chain,
+    " [id: ", l_current_lvl_id,
+    " v: ", l_current_lvl_val,
+    " d: ", IFNULL(l_delta, "-"), "]");
 
 SET l_current_lvl_id = l_next_lvl_id;
 END LOOP;
 
 RETURN l_lvl_chain;
 END$$
+
+CREATE PROCEDURE make_bad_level_step(
+    IN in_report_id INT,
+    IN in_current_lvl_id INT,
+    IN in_lvl_chain VARCHAR(200))
+BEGIN
+INSERT INTO bad_level_steps (report_id, current_lvl_id, lvl_chain) VALUES
+(in_report_id, in_current_lvl_id, in_lvl_chain);
+END $$
 
 CREATE PROCEDURE display_bad_level_steps(IN in_report_id INT)
 BEGIN
@@ -440,6 +454,9 @@ SET lvl_chain = NULL;
 SET f_lvl_id = reports_get_first_lvl_id(p_report_id);
 SET current_lvl_id = f_lvl_id;
 
+SET lvl_chain = make_lvl_chain_text(p_report_id);
+CALL make_bad_level_step(p_report_id, current_lvl_id, lvl_chain);
+
 bad_lvl_loop: LOOP
 SET next_lvl_id = levels_get_next_id(current_lvl_id);
 
@@ -474,8 +491,7 @@ ELSE
 END IF;
 
 SET lvl_chain = make_lvl_chain_text(p_report_id);
-INSERT INTO bad_level_steps (report_id, lvl_chain) VALUES
-(p_report_id, lvl_chain);
+CALL make_bad_level_step(p_report_id, current_lvl_id, lvl_chain);
 END LOOP;
 
 UPDATE reports
