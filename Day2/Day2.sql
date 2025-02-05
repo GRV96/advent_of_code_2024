@@ -196,15 +196,6 @@ FROM reports;
 SELECT *
 FROM levels;
 END$$
-
-CREATE PROCEDURE display_unsafe_reports(IN in_safety_limit INT)
-BEGIN
-SELECT r.id, r.nb_bad_levels, r.first_lvl_id, c.lvl_chain
-FROM reports r
-JOIN report_lvl_chains c
-ON r.id = c.id
-WHERE nb_bad_levels > in_safety_limit;
-END$$
 DELIMITER ;
 
 CREATE TABLE IF NOT EXISTS report_lvl_chains (
@@ -212,6 +203,28 @@ CREATE TABLE IF NOT EXISTS report_lvl_chains (
     lvl_chain VARCHAR(200),
 FOREIGN KEY (id) REFERENCES reports(id)
 );
+
+CREATE VIEW v_reports_and_lvl_chains AS
+SELECT r.id, r.nb_bad_levels, r.first_lvl_id, c.lvl_chain
+FROM reports r
+JOIN report_lvl_chains c
+ON r.id = c.id;
+
+DELIMITER $$
+CREATE PROCEDURE display_safe_reports(IN in_safety_threshold INT)
+BEGIN
+SELECT *
+FROM v_reports_and_lvl_chains
+WHERE nb_bad_levels <= in_safety_threshold;
+END$$
+
+CREATE PROCEDURE display_unsafe_reports(IN in_safety_threshold INT)
+BEGIN
+SELECT *
+FROM v_reports_and_lvl_chains
+WHERE nb_bad_levels > in_safety_threshold;
+END$$
+DELIMITER ;
 
 CREATE TABLE IF NOT EXISTS bad_level_steps (
     id INT PRIMARY KEY UNIQUE AUTO_INCREMENT,
@@ -540,13 +553,10 @@ FIELDS TERMINATED BY " "
 (lvl0, lvl1, lvl2, lvl3, lvl4, lvl5, lvl6, lvl7);
 
 CALL make_all_reports();
-#CALL display_reports_and_levels();
-
 CALL remove_all_bad_levels();
-#CALL display_reports_and_levels();
 
-CALL display_bad_level_steps(631);
-CALL display_unsafe_reports(1);
+CALL display_bad_level_steps(616);
+CALL display_safe_reports(1);
 
 SET @puzzle1_answer = -1;
 SELECT COUNT(*)
